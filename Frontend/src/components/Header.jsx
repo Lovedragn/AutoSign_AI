@@ -112,6 +112,8 @@ export default function Header({ currentPage, setCurrentPage, user, setUser }) {
                   onClick={() => {
                     setUser(null);
                     localStorage.removeItem("autosign_user");
+                    localStorage.removeItem("autosign_token");
+                    localStorage.removeItem("autosign_page");
                     setCurrentPage("landing");
                   }}
                   style={{

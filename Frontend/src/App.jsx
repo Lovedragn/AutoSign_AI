@@ -9,16 +9,41 @@ import HistoryPage from "./components/HistoryPage";
 import { GOOGLE_CLIENT_ID } from "./config";
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState("landing");
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("autosign_user");
     if (!saved) return null;
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      return parsed && parsed.email ? parsed : null;
     } catch {
       return null;
     }
   });
+
+  const [currentPage, setCurrentPageState] = useState(() => {
+    const savedUser = localStorage.getItem("autosign_user");
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        if (parsed && parsed.email) {
+          const savedPage = localStorage.getItem("autosign_page");
+          return savedPage && ["dashboard", "history", "preview"].includes(savedPage)
+            ? savedPage
+            : "dashboard";
+        }
+      } catch {
+        // Fallback below
+      }
+    }
+    return "landing";
+  });
+
+  const setCurrentPage = (page) => {
+    setCurrentPageState(page);
+    if (page && page !== "login" && page !== "register") {
+      localStorage.setItem("autosign_page", page);
+    }
+  };
   const [signature, setSignature] = useState(() => {
     return localStorage.getItem("autosign_signature") || null;
   });
