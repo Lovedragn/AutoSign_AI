@@ -7,7 +7,9 @@ import DashboardPage from "./components/DashboardPage";
 import PreviewPage from "./components/PreviewPage";
 import HistoryPage from "./components/HistoryPage";
 
-const GOOGLE_CLIENT_ID = "102938475610-autosign-demo.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  "102938475610-autosign-demo.apps.googleusercontent.com";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState("landing"); // "landing" | "login" | "register" | "dashboard" | "preview" | "history"

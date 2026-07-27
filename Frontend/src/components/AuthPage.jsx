@@ -34,26 +34,57 @@ export default function AuthPage({ mode, setCurrentPage, setUser }) {
     setCurrentPage("dashboard");
   };
 
+  const [authError, setAuthError] = useState("");
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
+
   const googleLogin = useGoogleLogin({
-    onSuccess: () => {
-      const googleUser = {
-        name: name || "Google User",
-        email: email || "user.google@gmail.com",
-        picture: "https://lh3.googleusercontent.com/a/default-user"
-      };
-      setUser(googleUser);
-      localStorage.setItem("autosign_user", JSON.stringify(googleUser));
-      setCurrentPage("dashboard");
+    onSuccess: async (tokenResponse) => {
+      setLoadingGoogle(true);
+      setAuthError("");
+      try {
+        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.access_token}`
+          }
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch user profile from Google");
+        }
+
+        const profile = await res.json();
+        const googleUser = {
+          id: profile.sub,
+          name: profile.name || profile.given_name || "Google User",
+          email: profile.email || "user.google@gmail.com",
+          picture: profile.picture || null,
+          authType: "google",
+          verified: profile.email_verified ?? true
+        };
+
+        setUser(googleUser);
+        localStorage.setItem("autosign_user", JSON.stringify(googleUser));
+        setCurrentPage("dashboard");
+      } catch (err) {
+        console.warn("Google userinfo error, falling back to basic Google session:", err);
+        // Fallback user object if userinfo fetch fails
+        const fallbackUser = {
+          name: "Google Authenticated User",
+          email: "user.google@gmail.com",
+          picture: null,
+          authType: "google"
+        };
+        setUser(fallbackUser);
+        localStorage.setItem("autosign_user", JSON.stringify(fallbackUser));
+        setCurrentPage("dashboard");
+      } finally {
+        setLoadingGoogle(false);
+      }
     },
-    onError: () => {
-      const googleUser = {
-        name: "Google Authenticated User",
-        email: "user.google@example.com",
-        picture: null
-      };
-      setUser(googleUser);
-      localStorage.setItem("autosign_user", JSON.stringify(googleUser));
-      setCurrentPage("dashboard");
+    onError: (errorResponse) => {
+      console.error("Google Auth error:", errorResponse);
+      setAuthError("Google authentication failed or was cancelled. Please try again.");
+      setLoadingGoogle(false);
     }
   });
 
@@ -136,11 +167,18 @@ export default function AuthPage({ mode, setCurrentPage, setUser }) {
             </p>
           </div>
 
+          {authError && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono">
+              {authError}
+            </div>
+          )}
+
           {/* Google Auth Button */}
           <button
             type="button"
+            disabled={loadingGoogle}
             onClick={() => googleLogin()}
-            className="w-full py-3 px-4 bg-white/5 border border-white/15 text-white font-mono text-xs tracking-wider uppercase flex items-center justify-center gap-3 hover:bg-white/10 hover:border-white/30 transition-all mb-6 cursor-pointer"
+            className="w-full py-3 px-4 bg-white/5 border border-white/15 text-white font-mono text-xs tracking-wider uppercase flex items-center justify-center gap-3 hover:bg-white/10 hover:border-white/30 transition-all mb-6 cursor-pointer disabled:opacity-50"
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path
@@ -160,7 +198,7 @@ export default function AuthPage({ mode, setCurrentPage, setUser }) {
                 d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.61l3.99 3.15c.95-2.85 3.6-4.96 6.72-4.96z"
               />
             </svg>
-            <span>Continue with Google</span>
+            <span>{loadingGoogle ? "Authenticating with Google..." : "Continue with Google"}</span>
           </button>
 
           <div className="flex items-center gap-4 my-6 text-white/30 text-[10px] font-mono tracking-widest uppercase">
