@@ -1,0 +1,186 @@
+    
+      {/* PIPELINE SECTION */}
+      <section className="px-6 md:px-12 py-20 border-b border-white/10">
+        <div className="max-w-7xl mx-auto">
+          <div className="font-mono text-[11px] tracking-[0.3em] text-[#CCFF00] uppercase mb-4">
+            02 · PIPELINE
+          </div>
+
+          <h2 className="font-serif text-4xl md:text-6xl text-white font-normal tracking-tight max-w-2xl leading-tight mb-16">
+            A hybrid detection pipeline built for real documents.
+          </h2>
+
+          <div
+            ref={pipelineRef}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 border border-white/10"
+            >
+            {/* Card 1 */}
+            <div className="p-8 border-b md:border-r lg:border-b-0 border-white/10 hover:bg-white/5 transition-colors group relative flex flex-col justify-between h-[280px]">
+              <div className="flex justify-between items-start">
+                <FileEdit size={24} className="text-[#CCFF00]" />
+                <span className="font-mono text-xs text-white/30">01</span>
+              </div>
+              <div>
+                <h3 className="font-serif text-2xl text-white font-normal mb-3 group-hover:text-[#CCFF00] transition-colors">
+                  Digital PDF
+                </h3>
+                <p className="font-mono text-xs text-white/60 leading-relaxed">
+                  PyMuPDF extracts text, fonts and coordinates from vector PDFs.
+                </p>
+              </div>
+            </div>
+
+            {/* Card 2 */}
+            <div className="p-8 border-b lg:border-r lg:border-b-0 border-white/10 hover:bg-white/5 transition-colors group relative flex flex-col justify-between h-[280px]">
+              <div className="flex justify-between items-start">
+                <Sparkles size={24} className="text-[#CCFF00]" />
+                <span className="font-mono text-xs text-white/30">02</span>
+              </div>
+              <div>
+                <h3 className="font-serif text-2xl text-white font-normal mb-3 group-hover:text-[#CCFF00] transition-colors">
+                  OCR + Vision
+                </h3>
+                <p className="font-mono text-xs text-white/60 leading-relaxed">
+                  Scanned PDFs go through Google Cloud Vision for OCR + object detection.
+                </p>
+              </div>
+            </div>
+
+            {/* Card 3 */}
+            <div className="p-8 border-b md:border-b-0 md:border-r border-white/10 hover:bg-white/5 transition-colors group relative flex flex-col justify-between h-[280px]">
+              <div className="flex justify-between items-start">
+                <Scan size={24} className="text-[#CCFF00]" />
+                <span className="font-mono text-xs text-white/30">03</span>
+              </div>
+              <div>
+                <h3 className="font-serif text-2xl text-white font-normal mb-3 group-hover:text-[#CCFF00] transition-colors">
+                  OpenCV Fallback
+                </h3>
+                <p className="font-mono text-xs text-white/60 leading-relaxed">
+                  Detects blank signature lines and empty writing regions.
+                </p>
+              </div>
+            </div>
+
+            {/* Card 4 */}
+            <div className="p-8 hover:bg-white/5 transition-colors group relative flex flex-col justify-between h-[280px]">
+              <div className="flex justify-between items-start">
+                <ShieldCheck size={24} className="text-[#CCFF00]" />
+                <span className="font-mono text-xs text-white/30">04</span>
+              </div>
+              <div>
+                <h3 className="font-serif text-2xl text-white font-normal mb-3 group-hover:text-[#CCFF00] transition-colors">
+                  You Confirm
+                </h3>
+                <p className="font-mono text-xs text-white/60 leading-relaxed">
+                  Never signs automatically. You review, drag, resize and confirm.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* WORKFLOW SECTION */}
+      <section className="px-6 md:px-12 py-20 border-b border-white/10">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-12">
+          <div className="md:col-span-4">
+            <div className="font-mono text-[11px] tracking-[0.3em] text-[#CCFF00] uppercase mb-4">
+              03 · WORKFLOW
+            </div>
+            <h2 className="font-serif text-4xl md:text-5xl font-normal text-white leading-tight">
+              Four steps.<br />
+              <span className="italic text-white/60">Ten seconds.</span>
+            </h2>
+          </div>
+
+          <div className="md:col-span-8 space-y-6">
+            {/* Step 01 */}
+            <div className="flex gap-6 border-t border-white/10 pt-6">
+              <span className="font-mono text-[#CCFF00] text-sm font-semibold w-10">01</span>
+              <div>
+                <h3 className="font-serif text-xl text-white font-normal mb-1">
+                  Upload your signature
+                </h3>
+                <p className="font-mono text-xs text-white/50">
+                  A single transparent PNG. Used across every document.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 02 */}
+            <div className="flex gap-6 border-t border-white/10 pt-6">
+              <span className="font-mono text-[#CCFF00] text-sm font-semibold w-10">02</span>
+              <div>
+                <h3 className="font-serif text-xl text-white font-normal mb-1">
+                  Upload a PDF
+                </h3>
+                <p className="font-mono text-xs text-white/50">
+                  Any digital or scanned document up to 20 MB.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 03 */}
+            <div className="flex gap-6 border-t border-white/10 pt-6">
+              <span className="font-mono text-[#CCFF00] text-sm font-semibold w-10">03</span>
+              <div>
+                <h3 className="font-serif text-xl text-white font-normal mb-1">
+                  AI finds every field
+                </h3>
+                <p className="font-mono text-xs text-white/50">
+                  Signature, initial and date fields — with coordinates and confidence.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 04 */}
+            <div className="flex gap-6 border-t border-white/10 pt-6">
+              <span className="font-mono text-[#CCFF00] text-sm font-semibold w-10">04</span>
+              <div>
+                <h3 className="font-serif text-xl text-white font-normal mb-1">
+                  Preview → Confirm → Download
+                </h3>
+                <p className="font-mono text-xs text-white/50">
+                  Move, resize and confirm placement. Then download the signed PDF.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER CTA SECTION */}
+      <section className="px-6 md:px-12 py-24 md:py-32 text-center">
+        <div className="max-w-3xl mx-auto">
+          <div className="font-mono text-[11px] tracking-[0.3em] text-[#CCFF00] uppercase mb-4">
+            READY?
+          </div>
+
+          <h2 className="font-serif text-5xl md:text-7xl font-normal text-white mb-10 leading-tight">
+            Stop clicking on fields.<br />
+            <span className="italic text-white/60">Start signing.</span>
+          </h2>
+
+          <div className="flex justify-center mb-12">
+            <button
+              onClick={handleStart}
+              className="btn-acid px-8 py-4 text-base text-black font-mono font-semibold cursor-pointer"
+            >
+              <span>Create free account</span>
+              <ArrowRight size={18} />
+            </button>
+          </div>
+
+          <div className="font-mono text-[11px] tracking-[0.3em] text-white/40 uppercase flex items-center justify-center gap-2">
+            <Zap size={14} className="text-[#CCFF00]" />
+            <span>POWERED BY GOOGLE CLOUD VISION</span>
+          </div>
+        </div>
+      </section>
+
+      {/* COPYRIGHT FOOTER */}
+      <footer className="border-t border-white/10 px-6 md:px-12 py-8 font-mono text-[11px] text-white/40 flex flex-wrap justify-between items-center gap-4 max-w-7xl mx-auto">
+        <div>© 2026 AutoSign AI — Sign smarter.</div>
+        <div className="tracking-widest">v1.0 · MVP</div>
+      </footer>

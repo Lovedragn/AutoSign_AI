@@ -1,0 +1,211 @@
+{
+  "communities": {
+    "0": [
+      "gsap",
+      "lucide_react",
+      "package_dependencies",
+      "package_dependencies_gsap",
+      "package_dependencies_lucide_react",
+      "package_dependencies_react",
+      "package_dependencies_react_dom",
+      "package_dependencies_react_oauth_google",
+      "package_dependencies_tailwindcss_postcss",
+      "package_dependencies_tailwindcss_vite",
+      "react",
+      "react_dom",
+      "react_oauth_google",
+      "tailwindcss_postcss",
+      "tailwindcss_vite"
+    ],
+    "1": [
+      "src_app",
+      "src_app_app",
+      "src_components_authpage",
+      "src_components_authpage_authpage",
+      "src_components_dashboardpage",
+      "src_components_dashboardpage_dashboardpage",
+      "src_components_header",
+      "src_components_header_header",
+      "src_components_historypage",
+      "src_components_historypage_historypage",
+      "src_components_landingpage",
+      "src_components_landingpage_landingpage",
+      "src_components_previewpage",
+      "src_components_previewpage_previewpage",
+      "src_main"
+    ],
+    "2": [
+      "package",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_dev",
+      "package_scripts_lint",
+      "package_scripts_preview",
+      "package_type",
+      "package_version"
+    ],
+    "3": [
+      "eslint_plugin_react_refresh",
+      "globals",
+      "package_devdependencies",
+      "package_devdependencies_eslint_plugin_react_refresh",
+      "package_devdependencies_globals"
+    ],
+    "4": [
+      "autoprefixer",
+      "package_devdependencies_autoprefixer"
+    ],
+    "5": [
+      "babel_core",
+      "package_devdependencies_babel_core"
+    ],
+    "6": [
+      "babel_plugin_react_compiler",
+      "package_devdependencies_babel_plugin_react_compiler"
+    ],
+    "7": [
+      "eslint",
+      "package_devdependencies_eslint"
+    ],
+    "8": [
+      "eslint_js",
+      "package_devdependencies_eslint_js"
+    ],
+    "9": [
+      "eslint_plugin_react_hooks",
+      "package_devdependencies_eslint_plugin_react_hooks"
+    ],
+    "10": [
+      "package_devdependencies_postcss",
+      "postcss"
+    ],
+    "11": [
+      "package_devdependencies_rolldown_plugin_babel",
+      "rolldown_plugin_babel"
+    ],
+    "12": [
+      "package_devdependencies_tailwindcss",
+      "tailwindcss"
+    ],
+    "13": [
+      "package_devdependencies_types_react",
+      "types_react"
+    ],
+    "14": [
+      "package_devdependencies_types_react_dom",
+      "types_react_dom"
+    ],
+    "15": [
+      "package_devdependencies_vite",
+      "vite"
+    ],
+    "16": [
+      "package_devdependencies_vitejs_plugin_react",
+      "vitejs_plugin_react"
+    ],
+    "17": [
+      "eslint_config"
+    ],
+    "18": [
+      "vite_config"
+    ]
+  },
+  "cohesion": {
+    "0": 0.13333333333333333,
+    "1": 0.2,
+    "2": 0.2,
+    "3": 0.4,
+    "4": 1.0,
+    "5": 1.0,
+    "6": 1.0,
+    "7": 1.0,
+    "8": 1.0,
+    "9": 1.0,
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.0,
+    "15": 1.0,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0
+  },
+  "gods": [
+    {
+      "id": "package_scripts",
+      "label": "scripts",
+      "degree": 5
+    },
+    {
+      "id": "package_dependencies_react_oauth_google",
+      "label": "@react-oauth/google",
+      "degree": 2
+    },
+    {
+      "id": "package_dependencies_tailwindcss_postcss",
+      "label": "@tailwindcss/postcss",
+      "degree": 2
+    },
+    {
+      "id": "package_dependencies_tailwindcss_vite",
+      "label": "@tailwindcss/vite",
+      "degree": 2
+    },
+    {
+      "id": "package_dependencies_gsap",
+      "label": "gsap",
+      "degree": 2
+    },
+    {
+      "id": "package_dependencies_lucide_react",
+      "label": "lucide-react",
+      "degree": 2
+    },
+    {
+      "id": "package_dependencies_react",
+      "label": "react",
+      "degree": 2
+    },
+    {
+      "id": "package_dependencies_react_dom",
+      "label": "react-dom",
+      "degree": 2
+    },
+    {
+      "id": "package_devdependencies_babel_core",
+      "label": "@babel/core",
+      "degree": 2
+    },
+    {
+      "id": "package_devdependencies_eslint_js",
+      "label": "@eslint/js",
+      "degree": 2
+    }
+  ],
+  "surprises": [],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `devDependencies` connect `Community 3` to `Community 2`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 14`, `Community 15`, `Community 16`?",
+      "why": "High betweenness centrality (0.458) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `dependencies` connect `Community 0` to `Community 2`?",
+      "why": "High betweenness centrality (0.257) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `name`, `private`, `version` to the rest of the system?",
+      "why": "30 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected."
+    }
+  ]
+}
