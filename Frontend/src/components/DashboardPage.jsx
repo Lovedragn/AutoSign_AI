@@ -22,28 +22,50 @@ export default function DashboardPage({ user, signature, setSignature, documents
   useEffect(() => {
     if (activeTab === "draw" && canvasRef.current) {
       const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0 && !signature) {
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+      }
       const ctx = canvas.getContext("2d");
       ctx.lineWidth = 2.5;
       ctx.lineCap = "round";
+      ctx.lineJoin = "round";
       ctx.strokeStyle = "#ffffff";
     }
-  }, [activeTab, signature]);
+  }, [activeTab]);
+
+  const getPos = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const scaleX = rect.width > 0 ? canvas.width / rect.width : 1;
+    const scaleY = rect.height > 0 ? canvas.height / rect.height : 1;
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  };
 
   const startDrawing = (e) => {
     setIsDrawing(true);
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    const rect = canvas.getBoundingClientRect();
+    const pos = getPos(e);
     ctx.beginPath();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.moveTo(pos.x, pos.y);
   };
 
   const draw = (e) => {
     if (!isDrawing) return;
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    const rect = canvas.getBoundingClientRect();
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    const pos = getPos(e);
+    ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
   };
 
@@ -61,8 +83,15 @@ export default function DashboardPage({ user, signature, setSignature, documents
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      setSignature(null);
-      localStorage.removeItem("autosign_signature");
+    }
+    setSignature(null);
+    localStorage.removeItem("autosign_signature");
+  };
+
+  const handleTabChange = (newTab) => {
+    if (newTab !== activeTab) {
+      clearCanvas();
+      setActiveTab(newTab);
     }
   };
 
@@ -144,7 +173,7 @@ export default function DashboardPage({ user, signature, setSignature, documents
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("draw")}
+                  onClick={() => handleTabChange("draw")}
                   style={{
                     background: "none",
                     border: "none",
@@ -160,7 +189,7 @@ export default function DashboardPage({ user, signature, setSignature, documents
                 <span style={{ color: "var(--border-muted)" }}>|</span>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("upload")}
+                  onClick={() => handleTabChange("upload")}
                   style={{
                     background: "none",
                     border: "none",
@@ -187,7 +216,49 @@ export default function DashboardPage({ user, signature, setSignature, documents
               justifyContent: "center",
               marginBottom: "1.5rem"
             }}>
-              {signature ? (
+              {activeTab === "draw" ? (
+                <>
+                  <canvas
+                    ref={canvasRef}
+                    width={340}
+                    height={170}
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDrawing}
+                    style={{ cursor: "crosshair", width: "100%", height: "100%", touchAction: "none" }}
+                  />
+                  {!signature && (
+                    <div style={{ position: "absolute", bottom: "10px", pointerEvents: "none", display: "flex", alignItems: "center", gap: "6px", color: "var(--text-dim)", fontSize: "0.75rem" }}>
+                      <PenTool size={13} />
+                      <span>Draw signature above</span>
+                    </div>
+                  )}
+                  {signature && (
+                    <button
+                      onClick={clearCanvas}
+                      style={{
+                        position: "absolute",
+                        top: "8px",
+                        right: "8px",
+                        background: "rgba(255,255,255,0.15)",
+                        border: "none",
+                        color: "#fff",
+                        padding: "4px 8px",
+                        fontSize: "0.75rem",
+                        cursor: "pointer",
+                        borderRadius: "4px"
+                      }}
+                      title="Clear & Redraw"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </>
+              ) : signature ? (
                 <div style={{ position: "relative", width: "100%", height: "100%", padding: "1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <img src={signature} alt="Signature Preview" style={{ maxHeight: "140px", maxWidth: "90%", filter: "brightness(0) invert(1)" }} />
                   <button
@@ -196,42 +267,25 @@ export default function DashboardPage({ user, signature, setSignature, documents
                       position: "absolute",
                       top: "8px",
                       right: "8px",
-                      background: "rgba(255,255,255,0.1)",
+                      background: "rgba(255,255,255,0.15)",
                       border: "none",
                       color: "#fff",
                       padding: "4px 8px",
                       fontSize: "0.75rem",
-                      cursor: "pointer"
+                      cursor: "pointer",
+                      borderRadius: "4px"
                     }}
                     title="Clear Signature"
                   >
                     <Trash2 size={14} />
                   </button>
                 </div>
-              ) : activeTab === "draw" ? (
-                <canvas
-                  ref={canvasRef}
-                  width={340}
-                  height={170}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={stopDrawing}
-                  onMouseLeave={stopDrawing}
-                  style={{ cursor: "crosshair", width: "100%", height: "100%" }}
-                />
               ) : (
                 <label style={{ cursor: "pointer", textAlign: "center", padding: "2rem", width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                   <Upload size={24} color="var(--text-dim)" style={{ marginBottom: "0.75rem" }} />
                   <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Click to browse signature image</span>
                   <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} />
                 </label>
-              )}
-
-              {!signature && activeTab === "draw" && (
-                <div style={{ position: "absolute", bottom: "10px", pointerEvents: "none", display: "flex", alignItems: "center", gap: "6px", color: "var(--text-dim)", fontSize: "0.75rem" }}>
-                  <PenTool size={13} />
-                  <span>Draw signature above</span>
-                </div>
               )}
             </div>
           </div>
@@ -241,17 +295,41 @@ export default function DashboardPage({ user, signature, setSignature, documents
               Transparent PNG recommended
             </div>
 
-            <label style={{ display: "block", width: "100%" }}>
-              <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} />
-              <button
-                type="button"
-                className={signature ? "btn-outline-acid" : "btn-acid"}
-                style={{ width: "100%", padding: "0.875rem" }}
-              >
-                {signature ? <Check size={16} /> : <Upload size={16} />}
-                <span>{signature ? "Signature Saved" : "Upload signature"}</span>
-              </button>
-            </label>
+            {activeTab === "draw" ? (
+              signature ? (
+                <button
+                  type="button"
+                  onClick={clearCanvas}
+                  className="btn-outline-acid"
+                  style={{ width: "100%", padding: "0.875rem" }}
+                >
+                  <Trash2 size={16} />
+                  <span>Clear & Redraw Signature</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-acid"
+                  disabled
+                  style={{ width: "100%", padding: "0.875rem", opacity: 0.6 }}
+                >
+                  <PenTool size={16} />
+                  <span>Draw Your Signature Above</span>
+                </button>
+              )
+            ) : (
+              <label style={{ display: "block", width: "100%" }}>
+                <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} />
+                <button
+                  type="button"
+                  className={signature ? "btn-outline-acid" : "btn-acid"}
+                  style={{ width: "100%", padding: "0.875rem" }}
+                >
+                  {signature ? <Check size={16} /> : <Upload size={16} />}
+                  <span>{signature ? "Signature Uploaded" : "Upload signature"}</span>
+                </button>
+              </label>
+            )}
           </div>
         </div>
 

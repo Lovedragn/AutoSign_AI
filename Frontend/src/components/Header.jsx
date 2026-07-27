@@ -96,15 +96,17 @@ export default function Header({ currentPage, setCurrentPage, user, setUser }) {
                       src={user.picture}
                       alt={user.name || "User avatar"}
                       referrerPolicy="no-referrer"
-                      style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid var(--acid-green)", objectFit: "cover", flexShrink: 0 }}
+                      className="rounded-full"
+                      style={{ width: "28px", height: "28px", border: "1px solid var(--acid-green)", objectFit: "cover", flexShrink: 0 }}
                     />
                   ) : (
-                    <div style={{ width: "28px", height: "28px", borderRadius: "50%", backgroundColor: "var(--acid-green)", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "bold", fontFamily: "var(--font-mono)", flexShrink: 0 }}>
+                    <div className="rounded-full"
+                      style={{ width: "28px", height: "28px", backgroundColor: "var(--acid-green)", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "bold", fontFamily: "var(--font-mono)", flexShrink: 0 }}>
                       {(user.name || user.email || "U").charAt(0).toUpperCase()}
                     </div>
                   )}
                   <span style={{ fontSize: "0.75rem", color: "var(--text-dim)", fontFamily: "var(--font-mono)", letterSpacing: "0.05em" }}>
-                    {user.email}
+                    {user.name}
                   </span>
                 </div>
                 <button

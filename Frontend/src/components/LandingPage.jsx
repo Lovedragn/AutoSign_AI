@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { ArrowRight, FileText, Sparkles, ScanSearch, ShieldCheck, Zap } from "lucide-react";
 import gsap from "gsap";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const PIPELINE_STEPS = [
   {
@@ -98,11 +99,56 @@ export default function LandingPage({ setCurrentPage, setUser }) {
     }
   }, []);
 
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.access_token}`
+          }
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch user profile from Google");
+        }
+
+        const profile = await res.json();
+        const googleUser = {
+          id: profile.sub,
+          name: profile.name || profile.given_name || "Google User",
+          email: profile.email || "user.google@gmail.com",
+          picture: profile.picture || null,
+          authType: "google",
+          verified: profile.email_verified ?? true
+        };
+
+        setUser(googleUser);
+        localStorage.setItem("autosign_user", JSON.stringify(googleUser));
+        setCurrentPage("dashboard");
+      } catch (err) {
+        console.warn("Google userinfo error, falling back to basic Google session:", err);
+        // Fallback user object if userinfo fetch fails
+        const fallbackUser = {
+          name: "Google Authenticated User",
+          email: "user.google@gmail.com",
+          picture: null,
+          authType: "google"
+        };
+        setUser(fallbackUser);
+        localStorage.setItem("autosign_user", JSON.stringify(fallbackUser));
+        setCurrentPage("dashboard");
+      }
+    },
+    onError: (errorResponse) => {
+      console.error("Google Auth error:", errorResponse);
+      // Show error message to user
+      // For now, we'll just log it. You can add a toast notification here.
+    }
+  });
+
   const handleStart = () => {
-    const defaultUser = { name: "Test User", email: "test_178508@example.com" };
-    setUser(defaultUser);
-    localStorage.setItem("autosign_user", JSON.stringify(defaultUser));
-    setCurrentPage("dashboard");
+    // Google Login Integration
+    googleLogin();
   };
 
   return (
