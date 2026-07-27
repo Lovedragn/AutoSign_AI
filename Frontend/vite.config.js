@@ -8,6 +8,19 @@ export default defineConfig({
   css: {
     postcss: {},
   },
+  server: {
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+      "Cross-Origin-Embedder-Policy": "unsafe-none"
+    },
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        secure: false
+      }
+    }
+  },
   plugins: [
     tailwindcss(),
     react(),

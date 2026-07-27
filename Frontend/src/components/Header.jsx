@@ -1,5 +1,4 @@
-import React from "react";
-import { PenTool, LogOut, ArrowRight, FileText } from "lucide-react";
+import { PenTool, LogOut, ArrowRight } from "lucide-react";
 
 export default function Header({ currentPage, setCurrentPage, user, setUser }) {
   return (

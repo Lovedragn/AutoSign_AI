@@ -1,5 +1,4 @@
-import React from "react";
-import { FileText, Trash2, ChevronRight, Download } from "lucide-react";
+import { FileText, Trash2, ChevronRight } from "lucide-react";
 
 export default function HistoryPage({ documents, setDocuments, setCurrentPage, setSelectedDoc }) {
   const handleDelete = (id) => {

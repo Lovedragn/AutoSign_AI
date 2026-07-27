@@ -1,0 +1,34 @@
+# Logs
+logs
+*.log
+
+# Environment & Sensitive Configuration Files
+.env
+.dev.env
+.prod.env
+*.env
+.env.*
+*.pem
+*.key
+*.cert
+
+# Python Virtual Environments & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.coverage
+
+# Storage & User Uploaded Files
+data/
+uploads/
+signatures/
+signed_docs/
+
+# System & OS Files
+.DS_Store
+Thumbs.db

@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
-import { ArrowRight, PenTool } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { PenTool } from "lucide-react";
 import gsap from "gsap";
 import { useGoogleLogin } from "@react-oauth/google";
+import { authGoogle } from "../api/client";
 
 export default function AuthPage({ mode, setCurrentPage, setUser }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-
   const formRef = useRef(null);
+  const [authError, setAuthError] = useState("");
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
 
   useEffect(() => {
     if (formRef.current) {
@@ -20,117 +19,82 @@ export default function AuthPage({ mode, setCurrentPage, setUser }) {
     }
   }, [mode]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!email) return;
-    const userName = name || email.split("@")[0];
-    const userObj = {
-      email,
-      name: userName,
-      picture: null
-    };
-    setUser(userObj);
-    localStorage.setItem("autosign_user", JSON.stringify(userObj));
-    setCurrentPage("dashboard");
-  };
-
-  const [authError, setAuthError] = useState("");
-  const [loadingGoogle, setLoadingGoogle] = useState(false);
-
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setLoadingGoogle(true);
       setAuthError("");
       try {
-        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: {
-            Authorization: `Bearer ${tokenResponse.access_token}`
-          }
-        });
+        // Authenticate via Python Flask backend API
+        const backendResult = await authGoogle(tokenResponse);
+        let googleUser = backendResult?.user;
 
-        if (!res.ok) {
-          throw new Error("Failed to fetch user profile from Google");
+        if (!googleUser) {
+          // Direct Google UserInfo API fallback
+          const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+            headers: {
+              Authorization: `Bearer ${tokenResponse.access_token}`
+            }
+          });
+          if (res.ok) {
+            const profile = await res.json();
+            googleUser = {
+              id: profile.sub,
+              name: profile.name || profile.given_name || "Google User",
+              email: profile.email,
+              picture: profile.picture || null,
+              authType: "google"
+            };
+          }
         }
 
-        const profile = await res.json();
-        const googleUser = {
-          id: profile.sub,
-          name: profile.name || profile.given_name || "Google User",
-          email: profile.email || "user.google@gmail.com",
-          picture: profile.picture || null,
-          authType: "google",
-          verified: profile.email_verified ?? true
-        };
+        if (backendResult?.token) {
+          localStorage.setItem("autosign_token", backendResult.token);
+        }
 
-        setUser(googleUser);
-        localStorage.setItem("autosign_user", JSON.stringify(googleUser));
-        setCurrentPage("dashboard");
+        if (googleUser && googleUser.email) {
+          setUser(googleUser);
+          localStorage.setItem("autosign_user", JSON.stringify(googleUser));
+          setCurrentPage("dashboard");
+        } else {
+          setAuthError("Google authentication failed. Could not retrieve account information.");
+        }
       } catch (err) {
-        console.warn("Google userinfo error, falling back to basic Google session:", err);
-        // Fallback user object if userinfo fetch fails
-        const fallbackUser = {
-          name: "Google Authenticated User",
-          email: "user.google@gmail.com",
-          picture: null,
-          authType: "google"
-        };
-        setUser(fallbackUser);
-        localStorage.setItem("autosign_user", JSON.stringify(fallbackUser));
-        setCurrentPage("dashboard");
+        console.error("Google authentication error:", err);
+        setAuthError("Google authentication failed. Please try again.");
       } finally {
         setLoadingGoogle(false);
       }
     },
     onError: (errorResponse) => {
-      console.error("Google Auth error:", errorResponse);
-      setAuthError("Google authentication failed or was cancelled. Please try again.");
+      console.error("Google Auth error or popup closed:", errorResponse);
+      setAuthError("Google authentication was cancelled or blocked.");
       setLoadingGoogle(false);
     }
   });
 
-  const isRegister = mode === "register";
-
   return (
     <div className="min-h-screen bg-black text-white grid grid-cols-1 lg:grid-cols-2">
       {/* Art Column */}
-      <div
-        className={`relative hidden lg:flex flex-col justify-end p-12 overflow-hidden bg-black ${
-          isRegister
-            ? "order-1 lg:order-2 border-l border-white/10"
-            : "order-2 lg:order-1 border-r border-white/10"
-        }`}
-      >
+      <div className="relative hidden lg:flex flex-col justify-end p-12 overflow-hidden bg-black border-r border-white/10">
         <img
-          src={
-            isRegister
-              ? "https://images.unsplash.com/photo-1488972685288-c3fd157d7c7a?q=80&w=1200&auto=format&fit=crop"
-              : "https://images.unsplash.com/photo-1526289034009-0240ddb68ce3?q=80&w=1200&auto=format&fit=crop"
-          }
+          src="https://images.unsplash.com/photo-1526289034009-0240ddb68ce3?q=80&w=1200&auto=format&fit=crop"
           alt="Auth Visual"
           className="absolute inset-0 w-full h-full object-cover opacity-40"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
 
-        <div
-          className={`relative z-10 max-w-md ${
-            isRegister ? "ml-auto text-right" : "text-left"
-          }`}
-        >
+        <div className="relative z-10 max-w-md text-left">
           <div className="text-[#CCFF00] text-xs font-mono tracking-[0.3em] uppercase mb-2">
-            {isRegister ? "02 // JOIN" : "// SIGN IN"}
+            // SECURE AUTHENTICATION
           </div>
           <h2 className="font-serif text-4xl text-white font-normal leading-tight">
-            {isRegister ? "Sign once. Everywhere." : "Your documents. Faster."}
+            Your documents. Faster.
           </h2>
         </div>
       </div>
 
       {/* Form Column */}
-      <div
-        className={`flex items-center justify-center px-8 py-12 ${
-          isRegister ? "order-2 lg:order-1" : "order-1 lg:order-2"
-        }`}
-      >
+      <div className="flex items-center justify-center px-8 py-12">
         <div ref={formRef} className="w-full max-w-md">
           {/* Top Brand Tag */}
           <div
@@ -148,27 +112,18 @@ export default function AuthPage({ mode, setCurrentPage, setUser }) {
 
           <div className="mb-8">
             <div className="text-[#CCFF00] text-xs font-mono tracking-[0.3em] uppercase mb-2">
-              {isRegister ? "// CREATE ACCOUNT" : "// SIGN IN"}
+              // SIGN IN WITH GOOGLE
             </div>
             <h1 className="font-serif text-4xl font-normal text-white mb-2">
-              {isRegister ? (
-                <>
-                  Start signing <br />
-                  <span className="italic text-white/60">smarter.</span>
-                </>
-              ) : (
-                "Welcome back."
-              )}
+              Welcome to AutoSign.
             </h1>
             <p className="font-mono text-xs text-white/50">
-              {isRegister
-                ? "Create an account to start signing documents automatically."
-                : "Sign in to continue signing."}
+              Sign in securely using your official Google Account to access your workspace.
             </p>
           </div>
 
           {authError && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono">
+            <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono">
               {authError}
             </div>
           )}
@@ -178,9 +133,9 @@ export default function AuthPage({ mode, setCurrentPage, setUser }) {
             type="button"
             disabled={loadingGoogle}
             onClick={() => googleLogin()}
-            className="w-full py-3 px-4 bg-white/5 border border-white/15 text-white font-mono text-xs tracking-wider uppercase flex items-center justify-center gap-3 hover:bg-white/10 hover:border-white/30 transition-all mb-6 cursor-pointer disabled:opacity-50"
+            className="w-full py-4 px-6 bg-white text-black font-mono text-xs tracking-wider uppercase flex items-center justify-center gap-3 hover:bg-[#CCFF00] transition-all duration-200 cursor-pointer disabled:opacity-50 font-bold shadow-lg shadow-white/5"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24">
+            <svg width="20" height="20" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
                 d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
@@ -198,94 +153,11 @@ export default function AuthPage({ mode, setCurrentPage, setUser }) {
                 d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.61l3.99 3.15c.95-2.85 3.6-4.96 6.72-4.96z"
               />
             </svg>
-            <span>{loadingGoogle ? "Authenticating with Google..." : "Continue with Google"}</span>
+            <span>{loadingGoogle ? "Connecting to Google..." : "Continue with Google"}</span>
           </button>
-
-          <div className="flex items-center gap-4 my-6 text-white/30 text-[10px] font-mono tracking-widest uppercase">
-            <div className="flex-1 h-px bg-white/10" />
-            <span>OR</span>
-            <div className="flex-1 h-px bg-white/10" />
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {isRegister && (
-              <div>
-                <label className="block text-[10px] font-mono uppercase tracking-widest text-white/50 mb-1">
-                  FULL NAME
-                </label>
-                <input
-                  type="text"
-                  className="w-full bg-transparent border border-white/15 px-4 py-3 text-sm font-mono focus:outline-none focus:border-[#CCFF00] transition-colors"
-                  placeholder="Jane Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="block text-[10px] font-mono uppercase tracking-widest text-white/50 mb-1">
-                EMAIL ADDRESS
-              </label>
-              <input
-                type="email"
-                className="w-full bg-transparent border border-white/15 px-4 py-3 text-sm font-mono focus:outline-none focus:border-[#CCFF00] transition-colors"
-                placeholder="user@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-mono uppercase tracking-widest text-white/50 mb-1">
-                PASSWORD
-              </label>
-              <input
-                type="password"
-                className="w-full bg-transparent border border-white/15 px-4 py-3 text-sm font-mono focus:outline-none focus:border-[#CCFF00] transition-colors"
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="btn-acid w-full inline-flex items-center justify-center gap-2 mt-4 py-3 cursor-pointer"
-            >
-              <span>{isRegister ? "Create account" : "Sign in"}</span>
-              <ArrowRight size={16} />
-            </button>
-          </form>
-
-          <div className="mt-8 text-center font-mono text-xs text-white/50">
-            {isRegister ? (
-              <p>
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage("login")}
-                  className="text-[#CCFF00] hover:underline bg-transparent border-none cursor-pointer"
-                >
-                  Sign in
-                </button>
-              </p>
-            ) : (
-              <p>
-                No account?{" "}
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage("register")}
-                  className="text-[#CCFF00] hover:underline bg-transparent border-none cursor-pointer"
-                >
-                  Create one
-                </button>
-              </p>
-            )}
-          </div>
+          <p className="mt-8 font-mono text-[10px] text-white/30 text-center leading-relaxed">
+            By signing in, you agree to secure document processing and encrypted PDF storage.
+          </p>
         </div>
       </div>
     </div>

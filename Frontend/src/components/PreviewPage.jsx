@@ -1,9 +1,10 @@
-import React, { useState, useRef } from "react";
-import { ArrowLeft, Plus, Check, Download, FileText, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { useState, useRef } from "react";
+import { ArrowLeft, Plus, Check, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { signDocumentApi, getDownloadUrl } from "../api/client";
 
 export default function PreviewPage({ doc, signature, setCurrentPage, setDocuments, documents }) {
   const [fields, setFields] = useState([
-    { id: "field_1", type: "SIGNATURE", confidence: "40%", x: 420, y: 440, width: 220, height: 90 }
+    { id: "field_1", type: "SIGNATURE", confidence: "40%", page: 1, x: 420, y: 440, width: 220, height: 90 }
   ]);
   const [activeFieldId, setActiveFieldId] = useState("field_1");
   const [isSigning, setIsSigning] = useState(false);
@@ -19,6 +20,7 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
       id: "field_" + Date.now(),
       type: "SIGNATURE",
       confidence: "MANUAL",
+      page: page,
       x: 180 + fields.length * 30,
       y: 220 + fields.length * 30,
       width: 200,
@@ -57,35 +59,31 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
     isDraggingRef.current = false;
   };
 
-  const handleSignAndDownload = () => {
+  const handleSignAndDownload = async () => {
     setIsSigning(true);
-    setTimeout(() => {
-      setIsSigning(false);
-      setSignedDone(true);
+    const docId = doc?.id || "doc_sample_1";
+    
+    // Call Python Flask backend to stamp signature on PDF
+    await signDocumentApi(docId, signature, fields);
+    
+    setIsSigning(false);
+    setSignedDone(true);
 
-      // Update doc status in history list
-      if (doc) {
-        const updatedDocs = documents.map((d) =>
-          d.id === doc.id ? { ...d, status: "SIGNED" } : d
-        );
-        setDocuments(updatedDocs);
-        localStorage.setItem("autosign_docs", JSON.stringify(updatedDocs));
-      }
-
-      // Download trigger
-      const element = document.createElement("a");
-      const file = new Blob(
-        [
-          `AutoSign AI - Signed Document Certificate\n\nDocument: ${doc?.name || "document.pdf"}\nSigned Date: ${new Date().toISOString()}\nStatus: VERIFIED_DIGITAL_SIGNATURE\nFields Signed: ${fields.length}`
-        ],
-        { type: "text/plain" }
+    if (doc) {
+      const updatedDocs = documents.map((d) =>
+        d.id === doc.id ? { ...d, status: "SIGNED" } : d
       );
-      element.href = URL.createObjectURL(file);
-      element.download = `${doc?.name ? doc.name.replace(".pdf", "") : "signed_document"}_signed.txt`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-    }, 1200);
+      setDocuments(updatedDocs);
+      localStorage.setItem("autosign_docs", JSON.stringify(updatedDocs));
+    }
+
+    // Trigger download from Python Flask backend
+    const downloadLink = document.createElement("a");
+    downloadLink.href = getDownloadUrl(docId);
+    downloadLink.download = `${doc?.name ? doc.name.replace(".pdf", "") : "signed_document"}_signed.pdf`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
   };
 
   return (

@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Upload, FileText, Check, PenTool, Trash2, ArrowRight, Sparkles } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Upload, FileText, Check, PenTool, Trash2, ArrowRight } from "lucide-react";
 import gsap from "gsap";
+import { uploadSignatureApi, uploadDocumentApi, fetchDocumentsApi } from "../api/client";
 
 export default function DashboardPage({ user, signature, setSignature, documents, setDocuments, setCurrentPage, setSelectedDoc }) {
   const [activeTab, setActiveTab] = useState("draw"); // "draw" | "upload"
@@ -16,7 +17,17 @@ export default function DashboardPage({ user, signature, setSignature, documents
         { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }
       );
     }
-  }, []);
+
+    // Refresh documents from backend
+    if (user?.email) {
+      fetchDocumentsApi(user.email).then((remoteDocs) => {
+        if (remoteDocs && remoteDocs.length > 0) {
+          setDocuments(remoteDocs);
+          localStorage.setItem("autosign_docs", JSON.stringify(remoteDocs));
+        }
+      });
+    }
+  }, [user, setDocuments]);
 
   // Initialize Canvas
   useEffect(() => {
@@ -33,7 +44,7 @@ export default function DashboardPage({ user, signature, setSignature, documents
       ctx.lineJoin = "round";
       ctx.strokeStyle = "#ffffff";
     }
-  }, [activeTab]);
+  }, [activeTab, signature]);
 
   const getPos = (e) => {
     const canvas = canvasRef.current;
@@ -75,6 +86,7 @@ export default function DashboardPage({ user, signature, setSignature, documents
       const dataUrl = canvasRef.current.toDataURL("image/png");
       setSignature(dataUrl);
       localStorage.setItem("autosign_signature", dataUrl);
+      uploadSignatureApi(dataUrl);
     }
   };
 
@@ -103,15 +115,20 @@ export default function DashboardPage({ user, signature, setSignature, documents
         const result = event.target?.result;
         setSignature(result);
         localStorage.setItem("autosign_signature", result);
+        uploadSignatureApi(result);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handlePDFUpload = (fileOrName) => {
+  const handlePDFUpload = async (fileOrName) => {
     if (!signature) return;
-    const fileName = typeof fileOrName === "string" ? fileOrName : fileOrName.name || "sample.pdf";
-    const newDoc = {
+    
+    // Call backend API for upload & AI field inspection
+    const uploadResult = await uploadDocumentApi(fileOrName);
+    const fileName = typeof fileOrName === "string" ? fileOrName : fileOrName?.name || "sample.pdf";
+
+    const newDoc = uploadResult?.document || {
       id: "doc_" + Date.now(),
       name: fileName,
       date: new Date().toLocaleString("en-US", {
@@ -128,7 +145,7 @@ export default function DashboardPage({ user, signature, setSignature, documents
       status: "PENDING"
     };
 
-    const updated = [newDoc, ...documents];
+    const updated = [newDoc, ...documents.filter((d) => d.id !== newDoc.id)];
     setDocuments(updated);
     localStorage.setItem("autosign_docs", JSON.stringify(updated));
     setSelectedDoc(newDoc);
