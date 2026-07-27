@@ -1,4 +1,7 @@
-const API_BASE = "http://127.0.0.1:5000/";
+import { API_BASE_URL } from "../config";
+
+const rawUrl = (API_BASE_URL || "http://127.0.0.1:5000").replace(/\/+$/, "");
+const API_BASE = rawUrl.endsWith("/api") ? rawUrl : `${rawUrl}/api`;
 
 export async function authGoogle(tokenResponse, extraData = {}) {
   try {
