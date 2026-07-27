@@ -1,8 +1,20 @@
 {
   "name": "autosign",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
+  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
+  "homepage": "https://github.com/Lovedragn/AutoSign_AI#readme",
+  "bugs": {
+    "url": "https://github.com/Lovedragn/AutoSign_AI/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lovedragn/AutoSign_AI.git"
+  },
+  "license": "ISC",
+  "author": "",
   "type": "module",
+  "main": "eslint.config.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
