@@ -8,14 +8,13 @@ def read_pdf(pdf_path: str):
     
     If Digital:
       Extracts page number, text, bounding boxes [x1, y1, x2, y2], coordinates, and fonts.
-      Returns a list of dictionaries with extracted text elements.
       
     If Scanned (no selectable text):
       Returns is_scanned = True.
-      
-    Zero OCR, Zero OpenCV dependencies.
     """
+    print(f"[PDF READER] Reading PDF document: '{pdf_path}'")
     if not os.path.exists(pdf_path):
+        print(f"[PDF READER ERROR] File not found: '{pdf_path}'")
         raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
     doc = fitz.open(pdf_path)
@@ -60,6 +59,8 @@ def read_pdf(pdf_path: str):
 
     is_scanned = (total_text_length == 0) or (len(extracted_items) == 0)
 
+    print(f"[PDF READER SUCCESS] Analysis finished | Is Scanned: {is_scanned} | Total Pages: {total_pages} | Extracted Text Items: {len(extracted_items)}")
+
     if is_scanned:
         return {
             "is_scanned": True,
@@ -75,9 +76,6 @@ def read_pdf(pdf_path: str):
 
 
 def extract_pdf_elements(pdf_path: str):
-    """
-    Convenience function that directly returns the list of extracted items or is_scanned flag.
-    """
     result = read_pdf(pdf_path)
     if result["is_scanned"]:
         return {"is_scanned": True, "items": []}

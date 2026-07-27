@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Upload, FileText, Check, PenTool, Trash2, ArrowRight } from "lucide-react";
+import { Upload, FileText, Check, PenTool, Trash2, ArrowRight, RefreshCw } from "lucide-react";
 import gsap from "gsap";
 import { uploadSignatureApi, uploadDocumentApi, fetchDocumentsApi } from "../api/client";
 
@@ -121,35 +121,67 @@ export default function DashboardPage({ user, signature, setSignature, documents
     }
   };
 
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const pdfInputRef = useRef(null);
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (signature && !uploadingPdf) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (!signature || uploadingPdf) return;
+    const file = e.dataTransfer?.files?.[0];
+    if (file) {
+      handlePDFUpload(file);
+    }
+  };
+
   const handlePDFUpload = async (fileOrName) => {
-    if (!signature) return;
-    
-    // Call backend API for upload & AI field inspection
-    const uploadResult = await uploadDocumentApi(fileOrName);
-    const fileName = typeof fileOrName === "string" ? fileOrName : fileOrName?.name || "sample.pdf";
+    if (!signature || uploadingPdf) return;
+    setUploadingPdf(true);
 
-    const newDoc = uploadResult?.document || {
-      id: "doc_" + Date.now(),
-      name: fileName,
-      date: new Date().toLocaleString("en-US", {
-        month: "numeric",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true
-      }),
-      pages: 1,
-      fields: 1,
-      status: "PENDING"
-    };
+    try {
+      // Call backend API for upload & AI field inspection
+      const uploadResult = await uploadDocumentApi(fileOrName);
+      const fileName = typeof fileOrName === "string" ? fileOrName : fileOrName?.name || "document.pdf";
 
-    const updated = [newDoc, ...documents.filter((d) => d.id !== newDoc.id)];
-    setDocuments(updated);
-    localStorage.setItem("autosign_docs", JSON.stringify(updated));
-    setSelectedDoc(newDoc);
-    setCurrentPage("preview");
+      const newDoc = uploadResult?.document || {
+        id: "doc_" + Date.now(),
+        name: fileName,
+        date: new Date().toLocaleString("en-US", {
+          month: "numeric",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true
+        }),
+        pages: 1,
+        fields: 1,
+        status: "PENDING"
+      };
+
+      const updated = [newDoc, ...documents.filter((d) => d.id !== newDoc.id)];
+      setDocuments(updated);
+      localStorage.setItem("autosign_docs", JSON.stringify(updated));
+      setSelectedDoc(newDoc);
+      setCurrentPage("preview");
+    } finally {
+      setUploadingPdf(false);
+    }
   };
 
   const userName = user?.name ? user.name.split(" ")[0] : "Test";
@@ -365,53 +397,88 @@ export default function DashboardPage({ user, signature, setSignature, documents
             </div>
 
             {/* Dropzone Container */}
-            <div style={{
-              height: "240px",
-              border: "1px dashed var(--border-bright)",
-              backgroundColor: signature ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.4)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "2rem",
-              textAlign: "center",
-              position: "relative"
-            }}>
-              <FileText size={36} color={signature ? "var(--acid-green)" : "var(--text-dim)"} style={{ marginBottom: "1rem" }} />
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => {
+                if (signature && pdfInputRef.current) {
+                  pdfInputRef.current.click();
+                }
+              }}
+              style={{
+                height: "240px",
+                border: isDragging ? "2px dashed var(--acid-green)" : "1px dashed var(--border-bright)",
+                backgroundColor: isDragging ? "rgba(204, 255, 0, 0.05)" : signature ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.4)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "2rem",
+                textAlign: "center",
+                position: "relative",
+                cursor: signature ? "pointer" : "default"
+              }}
+            >
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept=".pdf,image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handlePDFUpload(f);
+                }}
+                style={{ display: "none" }}
+              />
 
-              <h3 className="font-serif" style={{ fontSize: "1.75rem", fontWeight: "400", color: "#fff", marginBottom: "0.5rem" }}>
-                Drop your PDF here
-              </h3>
-              <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: "1.5rem" }}>
-                or click to browse
-              </p>
-
-              {!signature ? (
-                <div style={{ color: "var(--acid-green)", fontSize: "0.75rem", fontWeight: "600", letterSpacing: "0.08em" }}>
-                  ← UPLOAD YOUR SIGNATURE FIRST
+              {uploadingPdf ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "1rem", pointerEvents: "none" }}>
+                  <RefreshCw size={36} className="animate-spin text-[#CCFF00]" />
+                  <div style={{ textAlign: "center" }}>
+                    <h3 className="font-serif" style={{ fontSize: "1.5rem", fontWeight: "400", color: "#fff", marginBottom: "0.25rem" }}>
+                      Analyzing PDF structure...
+                    </h3>
+                    <p style={{ color: "var(--acid-green)", fontSize: "0.75rem", fontFamily: "var(--font-mono)", letterSpacing: "0.15em", textTransform: "uppercase" }} className="animate-pulse">
+                      Analyzing
+                    </p>
+                  </div>
                 </div>
               ) : (
-                <div style={{ display: "flex", gap: "0.75rem" }}>
-                  <label className="btn-acid" style={{ padding: "0.6rem 1.25rem", fontSize: "0.8rem", cursor: "pointer" }}>
-                    Select PDF File
-                    <input
-                      type="file"
-                      accept=".pdf,image/*"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handlePDFUpload(f);
-                      }}
-                      style={{ display: "none" }}
-                    />
-                  </label>
-                  <button
-                    onClick={() => handlePDFUpload("sample.pdf")}
-                    className="btn-outline-acid"
-                    style={{ padding: "0.6rem 1.25rem", fontSize: "0.8rem" }}
-                  >
-                    Try sample.pdf
-                  </button>
-                </div>
+                <>
+                  <FileText size={36} color={signature ? "var(--acid-green)" : "var(--text-dim)"} style={{ marginBottom: "1rem" }} />
+
+                  <h3 className="font-serif" style={{ fontSize: "1.75rem", fontWeight: "400", color: "#fff", marginBottom: "0.5rem" }}>
+                    {isDragging ? "Drop your PDF here" : "Drop your PDF here"}
+                  </h3>
+                  <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: "1.5rem" }}>
+                    or click anywhere inside to browse
+                  </p>
+
+                  {!signature ? (
+                    <div style={{ color: "var(--acid-green)", fontSize: "0.75rem", fontWeight: "600", letterSpacing: "0.08em" }}>
+                      ← UPLOAD YOUR SIGNATURE FIRST
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", gap: "0.75rem" }} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => pdfInputRef.current?.click()}
+                        className="btn-acid"
+                        style={{ padding: "0.6rem 1.25rem", fontSize: "0.8rem" }}
+                      >
+                        Select PDF File
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePDFUpload("sample.pdf")}
+                        className="btn-outline-acid"
+                        style={{ padding: "0.6rem 1.25rem", fontSize: "0.8rem" }}
+                      >
+                        Try sample.pdf
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

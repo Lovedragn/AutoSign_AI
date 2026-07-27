@@ -136,9 +136,6 @@ export default function AuthPage({ mode, setCurrentPage, setUser }) {
               d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.61l3.99 3.15c.95-2.85 3.6-4.96 6.72-4.96z"
             />
           </svg>
-          <span className="text-black font-semibold text-sm">
-            {loadingGoogle ? "Connecting to Google..." : "Continue with Google"}
-          </span>
         </button>
 
         {/* Feature Highlights - Centered Cards */}

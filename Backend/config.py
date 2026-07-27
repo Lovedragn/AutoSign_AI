@@ -24,3 +24,4 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID") or os.getenv("VITE_GOOGLE_CLIEN
 SECRET_KEY = os.getenv("SECRET_KEY", "autosign-secret-key-2026")
 PORT = int(os.getenv("PORT", 5000))
 ENV = os.getenv("ENV", "development")
+OCR_SPACE_API_KEY = os.getenv("OCR_SPACE_API_KEY", "123445686780qwertyuuipi")

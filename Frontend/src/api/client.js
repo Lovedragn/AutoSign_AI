@@ -1,11 +1,8 @@
 import { API_BASE_URL } from "../config";
 
-const rawUrl = (API_BASE_URL || "http://127.0.0.1:5000").replace(/\/+$/, "");
-const API_BASE = rawUrl.endsWith("/api") ? rawUrl : `${rawUrl}/api`;
-
 export async function authGoogle(tokenResponse, extraData = {}) {
   try {
-    const res = await fetch(`${API_BASE}/auth/google`, {
+    const res = await fetch(`${API_BASE_URL}/auth/google`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -23,7 +20,7 @@ export async function authGoogle(tokenResponse, extraData = {}) {
 
 export async function authLogin(email, name = "") {
   try {
-    const res = await fetch(`${API_BASE}/auth/login`, {
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, name })
@@ -38,7 +35,7 @@ export async function authLogin(email, name = "") {
 
 export async function uploadSignatureApi(signatureData) {
   try {
-    const res = await fetch(`${API_BASE}/signatures/upload`, {
+    const res = await fetch(`${API_BASE_URL}/api/signatures/upload`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ signature: signatureData })
@@ -57,7 +54,7 @@ export async function uploadDocumentApi(fileOrName) {
     if (fileOrName && typeof fileOrName !== "string") {
       formData.append("file", fileOrName);
     }
-    const res = await fetch(`${API_BASE}/documents/upload`, {
+    const res = await fetch(`${API_BASE_URL}/api/documents/upload`, {
       method: "POST",
       body: formData
     });
@@ -71,7 +68,7 @@ export async function uploadDocumentApi(fileOrName) {
 
 export async function fetchDocumentsApi(userEmail = "") {
   try {
-    const res = await fetch(`${API_BASE}/documents?user_email=${encodeURIComponent(userEmail)}`);
+    const res = await fetch(`${API_BASE_URL}/documents?user_email=${encodeURIComponent(userEmail)}`);
     if (!res.ok) throw new Error("Fetch documents failed");
     const data = await res.json();
     return data.documents || [];
@@ -83,7 +80,7 @@ export async function fetchDocumentsApi(userEmail = "") {
 
 export async function signDocumentApi(docId, signatureData, fields) {
   try {
-    const res = await fetch(`${API_BASE}/documents/${docId}/sign`, {
+    const res = await fetch(`${API_BASE_URL}/documents/${docId}/sign`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ signature: signatureData, fields })
@@ -97,5 +94,5 @@ export async function signDocumentApi(docId, signatureData, fields) {
 }
 
 export function getDownloadUrl(docId) {
-  return `${API_BASE}/documents/${docId}/download`;
+  return `${API_BASE_URL}/documents/${docId}/download`;
 }
