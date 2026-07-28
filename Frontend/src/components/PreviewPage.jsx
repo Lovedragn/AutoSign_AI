@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { ArrowLeft, Plus, Check, ChevronLeft, ChevronRight, RefreshCw, FileText, Trash2, Maximize2, Minimize2 } from "lucide-react";
-import { signDocumentApi, getDownloadUrl } from "../api/client";
+import { signDocumentApi, getDownloadUrl, getDocumentFileUrl, getDocumentPagePreviewUrl } from "../api/client";
 
 export default function PreviewPage({ doc, signature, setCurrentPage, setDocuments, documents }) {
   const defaultFields = doc?.fields_detail && doc.fields_detail.length > 0
@@ -127,6 +127,7 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
 
   return (
     <div
+      className="no-scrollbar"
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       style={{
@@ -137,16 +138,20 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
       }}
     >
       {/* Left Sidebar */}
-      <div style={{
-        width: "320px",
-        backgroundColor: "#000",
-        borderRight: "1px solid var(--border-muted)",
-        padding: "1.5rem",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        zIndex: 10
-      }}>
+      <div
+        className="no-scrollbar"
+        style={{
+          width: "320px",
+          backgroundColor: "#000",
+          borderRight: "1px solid var(--border-muted)",
+          padding: "1.5rem",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          overflowY: "auto",
+          zIndex: 10
+        }}
+      >
         <div>
           {/* Back button */}
           <button
@@ -297,50 +302,93 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
           justifyContent: "center",
           gap: "1rem",
           fontSize: "0.75rem",
-          color: "var(--text-muted)"
+          color: "var(--text-muted)",
+          zIndex: 20
         }}>
           <button
+            type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}
+            disabled={page <= 1}
+            style={{
+              background: "none",
+              border: "none",
+              color: page <= 1 ? "rgba(255, 255, 255, 0.2)" : "var(--text-muted)",
+              cursor: page <= 1 ? "not-allowed" : "pointer"
+            }}
           >
             <ChevronLeft size={16} />
           </button>
           <span>PAGE {page} / {doc?.pages || 1}</span>
           <button
+            type="button"
             onClick={() => setPage((p) => Math.min(doc?.pages || 1, p + 1))}
-            style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}
+            disabled={page >= (doc?.pages || 1)}
+            style={{
+              background: "none",
+              border: "none",
+              color: page >= (doc?.pages || 1) ? "rgba(255, 255, 255, 0.2)" : "var(--text-muted)",
+              cursor: page >= (doc?.pages || 1) ? "not-allowed" : "pointer"
+            }}
           >
             <ChevronRight size={16} />
           </button>
         </div>
 
-        {/* PDF Document Viewer Container */}
+        {/* PDF Document Viewer Container - Scrollbars hidden */}
         <div style={{
           flex: 1,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "2rem",
-          overflow: "auto"
+          padding: "1.25rem",
+          overflow: "hidden",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none"
         }}>
           <div
             ref={pdfContainerRef}
             style={{
-              width: "720px",
-              height: "900px",
+              height: "100%",
+              maxHeight: "calc(100vh - 130px)",
+              aspectRatio: "1 / 1.35",
+              width: "auto",
+              maxWidth: "100%",
               backgroundColor: "#ffffff",
               boxShadow: "0 10px 40px rgba(0,0,0,0.8)",
               position: "relative",
               color: "#1a1a1a",
-              padding: "4rem",
+              padding: "2.5rem 3rem",
               fontFamily: "serif",
-              userSelect: "none"
+              userSelect: "none",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              overflow: "hidden"
             }}
           >
-            {isSamplePdf ? (
+            {/* Real Uploaded PDF Page Image Canvas - 0 SCROLLBARS */}
+            {doc?.id && doc?.id !== "doc_sample_1" ? (
+              <img
+                key={`pdf_page_img_${doc.id}_${page}`}
+                src={getDocumentPagePreviewUrl(doc.id, page)}
+                alt={`PDF Document Page ${page}`}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  border: "none",
+                  zIndex: 1,
+                  pointerEvents: "none",
+                  backgroundColor: "#fff"
+                }}
+              />
+            ) : isSamplePdf ? (
               <>
                 {/* Sample NDA Document Layout */}
-                <div style={{ borderBottom: "2px solid #333", paddingBottom: "1rem", marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div style={{ borderBottom: "2px solid #333", paddingBottom: "1rem", marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", position: "relative", zIndex: 2 }}>
                   <div>
                     <h2 style={{ fontSize: "1.75rem", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.05em", color: "#111" }}>
                       MUTUAL NON-DISCLOSURE AGREEMENT
@@ -352,7 +400,7 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
                   <div style={{ fontSize: "0.8rem", fontFamily: "sans-serif", color: "#555" }}>CONFIDENTIAL</div>
                 </div>
 
-                <div style={{ fontSize: "0.95rem", lineHeight: "1.8", color: "#222", marginBottom: "2rem" }}>
+                <div style={{ fontSize: "0.95rem", lineHeight: "1.8", color: "#222", marginBottom: "2rem", position: "relative", zIndex: 2 }}>
                   <p style={{ marginBottom: "1.25rem" }}>
                     This Mutual Non-Disclosure Agreement ("Agreement") is entered into as of the date signed below by and between the Receiving Party and the Disclosing Party.
                   </p>
@@ -364,7 +412,7 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
             ) : (
               <>
                 {/* User Real Uploaded Document Layout */}
-                <div style={{ borderBottom: "2px solid #111", paddingBottom: "1rem", marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div style={{ borderBottom: "2px solid #111", paddingBottom: "1rem", marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", position: "relative", zIndex: 2 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--acid-green)", fontSize: "0.8rem", fontFamily: "sans-serif", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px" }}>
                       <FileText size={16} />
@@ -381,29 +429,25 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
                     OFFICIAL PDF
                   </div>
                 </div>
-
-                <div style={{ fontSize: "0.95rem", lineHeight: "1.8", color: "#222", marginBottom: "2rem" }}>
-                  <p style={{ marginBottom: "1.25rem" }}>
-                    Document content loaded from <strong>{doc?.name}</strong>. AutoSign AI has analyzed vector PDF elements, extracted bounding box coordinates, and rendered interactive signature placement fields below.
-                  </p>
-                </div>
               </>
             )}
 
             {/* Signature Line Section on Page */}
-            <div style={{ position: "absolute", bottom: "140px", left: "60px", right: "60px", display: "flex", justifyContent: "space-between", borderTop: "1px solid #ddd", paddingTop: "1.5rem" }}>
-              <div style={{ width: "260px" }}>
-                <div style={{ borderBottom: "1px solid #444", height: "40px", marginBottom: "6px" }} />
-                <div style={{ fontSize: "0.8rem", fontFamily: "sans-serif", color: "#444" }}>Authorized Representative Signature</div>
-                <div style={{ fontSize: "0.75rem", fontFamily: "sans-serif", color: "#777" }}>Date: {new Date().toLocaleDateString()}</div>
-              </div>
+            {(!doc?.id || doc?.id === "doc_sample_1") && (
+              <div style={{ position: "absolute", bottom: "140px", left: "60px", right: "60px", display: "flex", justifyContent: "space-between", borderTop: "1px solid #ddd", paddingTop: "1.5rem", zIndex: 2 }}>
+                <div style={{ width: "260px" }}>
+                  <div style={{ borderBottom: "1px solid #444", height: "40px", marginBottom: "6px" }} />
+                  <div style={{ fontSize: "0.8rem", fontFamily: "sans-serif", color: "#444" }}>Authorized Representative Signature</div>
+                  <div style={{ fontSize: "0.75rem", fontFamily: "sans-serif", color: "#777" }}>Date: {new Date().toLocaleDateString()}</div>
+                </div>
 
-              <div style={{ width: "260px" }}>
-                <div style={{ borderBottom: "1px solid #444", height: "40px", marginBottom: "6px" }} />
-                <div style={{ fontSize: "0.8rem", fontFamily: "sans-serif", color: "#444" }}>Countersignature / Recipient</div>
-                <div style={{ fontSize: "0.75rem", fontFamily: "sans-serif", color: "#777" }}>AutoSign AI Verified</div>
+                <div style={{ width: "260px" }}>
+                  <div style={{ borderBottom: "1px solid #444", height: "40px", marginBottom: "6px" }} />
+                  <div style={{ fontSize: "0.8rem", fontFamily: "sans-serif", color: "#444" }}>Countersignature / Recipient</div>
+                  <div style={{ fontSize: "0.75rem", fontFamily: "sans-serif", color: "#777" }}>AutoSign AI Verified</div>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Render Draggable & Resizable Virtual Bounding Box Overlays */}
             {fields.map((f) => (
@@ -419,7 +463,8 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  position: "absolute"
+                  position: "absolute",
+                  zIndex: 10
                 }}
               >
                 {/* Field Header Label with Actions */}

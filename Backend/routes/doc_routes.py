@@ -2,6 +2,7 @@ import os
 import time
 import io
 import json
+import fitz  # PyMuPDF
 from flask import Blueprint, request, jsonify, send_file
 from werkzeug.utils import secure_filename
 from services.pdf_service import inspect_pdf, apply_signature_and_save
@@ -216,6 +217,28 @@ def sign_document(doc_id):
         "document": doc,
         "download_url": f"/api/documents/{doc_id}/download"
     }), 200
+
+
+@doc_bp.route("/api/documents/<doc_id>/preview", methods=["GET"])
+def get_document_page_preview(doc_id):
+    page_num = int(request.args.get("page", 1))
+    doc = get_document_by_id(doc_id)
+    if doc:
+        file_path = doc.get("file_path")
+        if file_path and os.path.exists(file_path):
+            try:
+                pdf_doc = fitz.open(file_path)
+                page_idx = max(0, min(len(pdf_doc) - 1, page_num - 1))
+                page_obj = pdf_doc[page_idx]
+                pix = page_obj.get_pixmap(dpi=150)
+                img_bytes = pix.tobytes("png")
+                return send_file(
+                    io.BytesIO(img_bytes),
+                    mimetype="image/png"
+                )
+            except Exception as err:
+                print(f"[PREVIEW ERROR] Failed to render PDF page image: {err}")
+    return jsonify({"error": "Preview not found"}), 404
 
 
 @doc_bp.route("/api/documents/<doc_id>/download", methods=["GET"])

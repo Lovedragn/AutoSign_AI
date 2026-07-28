@@ -103,3 +103,11 @@ export async function signDocumentApi(docId, signatureData, fields) {
 export function getDownloadUrl(docId) {
   return `${API_BASE}/documents/${docId}/download`;
 }
+
+export function getDocumentFileUrl(docId) {
+  return `${API_BASE}/documents/${docId}/file`;
+}
+
+export function getDocumentPagePreviewUrl(docId, page = 1) {
+  return `${API_BASE}/documents/${docId}/preview?page=${page}`;
+}
