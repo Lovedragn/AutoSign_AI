@@ -36,7 +36,6 @@ def _calculate_distance(bbox1, bbox2):
 
 
 def evaluate_confidence(ocr_candidates: list, layout_objects: list = None, config: dict = None):
-    print(f"[CONFIDENCE ENGINE] Evaluating confidence for {len(ocr_candidates)} text candidates and {len(layout_objects or [])} layout objects...")
     score_config = {**DEFAULT_CONFIDENCE_CONFIG, **(config or {})}
     keywords_config = score_config.get("keywords", {})
     nearby_line_score = score_config.get("nearby_horizontal_line", 30)
@@ -142,8 +141,8 @@ def evaluate_confidence(ocr_candidates: list, layout_objects: list = None, confi
     evaluated_candidates.sort(key=lambda x: x["confidence_score"], reverse=True)
     if evaluated_candidates:
         top_cand = evaluated_candidates[0]
-        print(f"[CONFIDENCE ENGINE SUCCESS] Top Candidate: '{top_cand['text']}' | Score: {top_cand['confidence_score']}% | Features: {top_cand['matched_features']}")
+        print(f"[CONFIDENCE] Evaluated {len(ocr_candidates)} text candidate(s) -> Top: '{top_cand['text']}' ({top_cand['confidence_score']}%)")
     else:
-        print(f"[CONFIDENCE ENGINE WARNING] No candidates evaluated.")
+        print(f"[CONFIDENCE] Evaluated {len(ocr_candidates)} candidate(s) (No keyword matches)")
 
     return evaluated_candidates

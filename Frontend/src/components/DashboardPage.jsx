@@ -148,14 +148,14 @@ export default function DashboardPage({ user, signature, setSignature, documents
     }
   };
 
-  const handlePDFUpload = async (fileOrName) => {
+  const handlePDFUpload = async (file) => {
     if (!signature || uploadingPdf) return;
     setUploadingPdf(true);
-
+    console.log("Good pdf handling");
     try {
       // Call backend API for upload & AI field inspection
-      const uploadResult = await uploadDocumentApi(fileOrName);
-      const fileName = typeof fileOrName === "string" ? fileOrName : fileOrName?.name || "document.pdf";
+      const uploadResult = await uploadDocumentApi(file);
+      const fileName = typeof file === "string" ? file : file?.name || "document.pdf";
 
       const newDoc = uploadResult?.document || {
         id: "doc_" + Date.now(),
@@ -426,6 +426,7 @@ export default function DashboardPage({ user, signature, setSignature, documents
                 accept=".pdf,image/*"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
+                  console.log("Uploaded PDF ");
                   if (f) handlePDFUpload(f);
                 }}
                 style={{ display: "none" }}
@@ -439,7 +440,7 @@ export default function DashboardPage({ user, signature, setSignature, documents
                       Analyzing PDF structure...
                     </h3>
                     <p style={{ color: "var(--acid-green)", fontSize: "0.75rem", fontFamily: "var(--font-mono)", letterSpacing: "0.15em", textTransform: "uppercase" }} className="animate-pulse">
-                      Analyzing
+                      Analyzing...
                     </p>
                   </div>
                 </div>

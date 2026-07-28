@@ -61,29 +61,42 @@ def upload_document():
         return jsonify({"status": "success", "document": new_doc}), 200
 
     file = request.files["file"]
-    if not file.filename:
-        return jsonify({"error": "Empty filename"}), 400
+    if not file or not file.filename:
+        return jsonify({"error": "Empty filename submitted"}), 400
 
-    filename = secure_filename(file.filename)
+    raw_filename = file.filename.strip()
+    if not raw_filename:
+        return jsonify({"error": "Empty filename submitted"}), 400
+
+    ext = raw_filename.rsplit(".", 1)[1].lower().strip() if "." in raw_filename else ""
+    clean_filename = secure_filename(raw_filename)
+    if not clean_filename or "." not in clean_filename:
+        clean_ext = ext if ext else "pdf"
+        clean_filename = f"document_{int(time.time())}.{clean_ext}"
+
     doc_id = f"doc_{int(time.time())}"
-    filepath = os.path.join(UPLOADS_DIR, f"{doc_id}_{filename}")
-    file.save(filepath)
+    filepath = os.path.join(UPLOADS_DIR, f"{doc_id}_{clean_filename}")
+    
+    try:
+        file.save(filepath)
+    except Exception as save_err:
+        return jsonify({"error": f"Failed to save file: {str(save_err)}"}), 500
 
     # Inspect PDF for page count and AI field detection
     analysis = inspect_pdf(filepath)
 
     new_doc = {
         "id": doc_id,
-        "name": filename,
+        "name": raw_filename,
         "date": time.strftime("%m/%d/%Y, %I:%M:%S %p"),
-        "pages": analysis["pages"],
-        "fields": len(analysis["fields"]),
+        "pages": analysis.get("pages", 1),
+        "fields": len(analysis.get("fields", [])),
         "status": "PENDING",
         "file_path": filepath,
-        "fields_detail": analysis["fields"]
+        "fields_detail": analysis.get("fields", [])
     }
     save_document(new_doc)
-    print(f"[DOC UPLOAD] Document '{filename}' uploaded ({analysis['pages']} pages, {len(analysis['fields'])} signature fields detected)")
+    print(f"[DOC UPLOAD] Document '{raw_filename}' uploaded ({new_doc['pages']} pages, {new_doc['fields']} signature fields detected)")
     return jsonify({"status": "success", "document": new_doc}), 200
 
 

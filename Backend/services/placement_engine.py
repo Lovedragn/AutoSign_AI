@@ -3,7 +3,6 @@ import math
 
 def calculate_signature_placement(candidate: dict, layout_info: dict = None) -> dict:
     cand_text = candidate.get("text", "Unknown")
-    print(f"[PLACEMENT ENGINE] Calculating placement for candidate text: '{cand_text}'...")
     layout = layout_info or {}
     page_width = float(layout.get("page_width", 595.0))
     page_height = float(layout.get("page_height", 842.0))
@@ -114,5 +113,5 @@ def calculate_signature_placement(candidate: dict, layout_info: dict = None) -> 
         "rule_applied": rule_applied
     }
 
-    print(f"[PLACEMENT ENGINE SUCCESS] Rule: {rule_applied} | Coordinates: x={res['x']}, y={res['y']}, width={res['width']}, height={res['height']}")
+    print(f"[PLACEMENT] Placed '{cand_text}' ({rule_applied} -> x={res['x']}, y={res['y']})")
     return res

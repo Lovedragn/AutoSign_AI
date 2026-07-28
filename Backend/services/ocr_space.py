@@ -27,7 +27,6 @@ session = _create_session()
 
 
 def convert_pdf_page_to_image_bytes(pdf_path_or_doc, page_num: int, dpi: int = 200) -> bytes:
-    print(f"[OCR SPACE] Converting PDF page {page_num + 1} into PNG image bytes (DPI={dpi})...")
     close_doc = False
     if isinstance(pdf_path_or_doc, str):
         if not os.path.exists(pdf_path_or_doc):
@@ -46,13 +45,11 @@ def convert_pdf_page_to_image_bytes(pdf_path_or_doc, page_num: int, dpi: int = 2
     if close_doc:
         doc.close()
 
-    print(f"[OCR SPACE] Successfully rendered page {page_num + 1} into {len(img_bytes)} bytes PNG image.")
     return img_bytes
 
 
 def process_ocr_image(img_bytes: bytes, page_num: int = 1, api_key: str = None, timeout: int = 30, max_retries: int = 3):
     key = api_key or os.getenv("OCR_SPACE_API_KEY") or getattr(config, "OCR_SPACE_API_KEY", "123445686780qwertyuuipi") or "123445686780qwertyuuipi"
-    print(f"[OCR SPACE] Calling OCR.space API endpoint for page {page_num}...")
 
     payload = {
         "apikey": key,
@@ -71,24 +68,16 @@ def process_ocr_image(img_bytes: bytes, page_num: int = 1, api_key: str = None, 
 
     for attempt in range(1, max_retries + 1):
         try:
-            print(f"[OCR SPACE] POST Request attempt {attempt}/{max_retries} to {OCR_SPACE_URL}...")
             response = session.post(OCR_SPACE_URL, data=payload, files=files, timeout=timeout)
             response.raise_for_status()
             response_json = response.json()
             break
-        except (requests.RequestException, ValueError) as err:
-            print(f"[OCR WARNING] Attempt {attempt}/{max_retries} failed: {err}")
+        except (requests.RequestException, ValueError):
             if attempt == max_retries:
-                print(f"[OCR ERROR] OCR.space API request failed after {max_retries} retries.")
                 return []
             time.sleep(1 * attempt)
 
-    if not response_json:
-        return []
-
-    if response_json.get("IsErroredOnHTTP") or response_json.get("OCRExitCode") != 1:
-        error_msg = response_json.get("ErrorMessage") or "Unknown OCR API error"
-        print(f"[OCR ERROR] OCR.space API response error: {error_msg}")
+    if not response_json or response_json.get("IsErroredOnHTTP") or response_json.get("OCRExitCode") != 1:
         return []
 
     parsed_results = response_json.get("ParsedResults", [])
@@ -118,12 +107,10 @@ def process_ocr_image(img_bytes: bytes, page_num: int = 1, api_key: str = None, 
                     "confidence": 96
                 })
 
-    print(f"[OCR SPACE SUCCESS] Page {page_num} OCR complete | Extracted Items: {len(extracted_items)}")
     return extracted_items
 
 
 def process_scanned_pdf(pdf_path: str, api_key: str = None, timeout: int = 30):
-    print(f"[OCR SPACE] Processing scanned PDF: '{pdf_path}'")
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
@@ -139,7 +126,7 @@ def process_scanned_pdf(pdf_path: str, api_key: str = None, timeout: int = 30):
 
     doc.close()
 
-    print(f"[OCR SPACE SUCCESS] Scanned PDF processing complete | Total Pages: {total_pages} | Extracted Items: {len(all_extracted_items)}")
+    print(f"[OCR] Processed scanned PDF '{pdf_path}' ({total_pages} page(s), {len(all_extracted_items)} items)")
     return {
         "is_scanned": True,
         "total_pages": total_pages,

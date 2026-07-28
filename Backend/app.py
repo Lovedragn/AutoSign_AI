@@ -1,6 +1,28 @@
+import sys
 import os
 import io
 import time
+import builtins
+
+# Force unbuffered output so print statements display instantly in the terminal
+os.environ["PYTHONUNBUFFERED"] = "1"
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(line_buffering=True, encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(line_buffering=True, encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+# Global print wrapper to force immediate flushing to terminal
+_original_print = builtins.print
+def print(*args, **kwargs):
+    kwargs.setdefault("flush", True)
+    _original_print(*args, **kwargs)
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -29,7 +51,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # ==========================================
 @app.route("/api/health", methods=["GET"])
 def health_check():
-    print(f"[API CALL] GET /api/health -> Server online ({config.ENV} mode)")
+    print(f"[API] GET /api/health")
     return jsonify({
         "status": "online",
         "service": "AutoSign AI Backend",
@@ -43,28 +65,27 @@ def health_check():
 # ==========================================
 @app.route("/api/auth/google", methods=["POST"])
 def google_auth():
-    print(f"[API CALL] POST /api/auth/google -> Authenticating Google OAuth token")
     data = request.get_json() or {}
     token = data.get("token") or data.get("access_token")
     if not token:
-        print("[AUTH ERROR] Missing access_token in Google Auth request")
+        print("[API] POST /api/auth/google (Error: Missing token)")
         return jsonify({"error": "Missing access_token"}), 400
 
     result = verify_google_oauth_token(token)
     if result:
         user = result.get("user", {})
-        print(f"[AUTH SUCCESS] Google login successful for user: {user.get('email')} (Name: {user.get('name')}, ID: {user.get('id')})")
+        print(f"[API] POST /api/auth/google -> User: {user.get('email')}")
         return jsonify(result), 200
     else:
         email = data.get("email")
         if not email:
-            print("[AUTH ERROR] Google OAuth verification failed and no user email provided")
+            print("[API] POST /api/auth/google (Error: Invalid token & email)")
             return jsonify({"error": "Google authentication failed. Valid email is required."}), 400
         
         name = data.get("name") or email.split("@")[0]
         result = authenticate_or_register_email(email, name)
         user = result.get("user", {})
-        print(f"[AUTH SUCCESS] Authenticated user via fallback: {user.get('email')} (Name: {user.get('name')})")
+        print(f"[API] POST /api/auth/google -> User: {user.get('email')}")
         return jsonify(result), 200
 
 
@@ -73,33 +94,31 @@ def google_auth():
 def login_or_register():
     data = request.get_json() or {}
     email = data.get("email")
-    print(f"[API CALL] POST /api/auth/login|register -> User email: {email}")
     if not email:
-        print("[AUTH ERROR] Email is required for authentication")
+        print("[API] POST /api/auth/login (Error: Missing email)")
         return jsonify({"error": "Email is required"}), 400
 
     name = data.get("name")
     result = authenticate_or_register_email(email, name)
     user = result.get("user", {})
-    print(f"[AUTH SUCCESS] Login successful for user: {user.get('email')} (Name: {user.get('name')})")
+    print(f"[API] POST /api/auth/login -> User: {user.get('email')}")
     return jsonify(result), 200
 
 
 @app.route("/api/auth/me", methods=["GET"])
 def get_me():
-    print(f"[API CALL] GET /api/auth/me -> Verifying JWT session token")
     auth_header = request.headers.get("Authorization", "")
     token = auth_header.replace("Bearer ", "").strip()
     if not token:
-        print(f"[AUTH WARNING] Missing Bearer token in /api/auth/me header")
+        print("[API] GET /api/auth/me (Unauthorized)")
         return jsonify({"error": "Unauthorized"}), 401
 
     decoded = verify_jwt_token(token)
     if not decoded:
-        print(f"[AUTH ERROR] Invalid JWT token in /api/auth/me")
+        print("[API] GET /api/auth/me (Invalid token)")
         return jsonify({"error": "Invalid token"}), 401
 
-    print(f"[AUTH SUCCESS] Active session verified for user: {decoded.get('email')}")
+    print(f"[API] GET /api/auth/me -> Session verified: {decoded.get('email')}")
     return jsonify({"user": decoded}), 200
 
 
@@ -108,7 +127,6 @@ def get_me():
 # ==========================================
 @app.route("/api/signatures/upload", methods=["POST"])
 def upload_signature():
-    print(f"[API CALL] POST /api/signatures/upload -> Uploading signature image")
     signature_data = None
     if "file" in request.files:
         file = request.files["file"]
@@ -116,7 +134,7 @@ def upload_signature():
             filename = secure_filename(f"sig_{int(time.time())}_{file.filename}")
             filepath = os.path.join(SIGNATURES_DIR, filename)
             file.save(filepath)
-            print(f"[SIGNATURE SUCCESS] Signature file saved to disk: {filename}")
+            print(f"[API] POST /api/signatures/upload -> File: {filename}")
             return jsonify({"status": "success", "signature_url": filepath}), 200
 
     data = request.get_json() or {}
@@ -126,19 +144,19 @@ def upload_signature():
         filepath = os.path.join(SIGNATURES_DIR, sig_id)
         with open(filepath, "w") as f:
             f.write(signature_data)
-        print(f"[SIGNATURE SUCCESS] Signature canvas PNG saved to disk: {sig_id}")
+        print(f"[API] POST /api/signatures/upload -> Canvas PNG: {sig_id}")
         return jsonify({"status": "success", "signature": signature_data, "file_path": filepath}), 200
 
-    print("[SIGNATURE ERROR] Signature upload failed: No file or dataUrl provided")
+    print("[API] POST /api/signatures/upload (Error: Missing data)")
     return jsonify({"error": "No signature file or data provided"}), 400
 
 
+ALLOWED_DOCUMENT_EXTENSIONS = {"pdf", "png", "jpg", "jpeg", "webp", "bmp", "tiff", "doc", "docx", "txt", "rtf", "odt"}
+
 @app.route("/api/documents/upload", methods=["POST"])
 def upload_document():
-    print(f"[API CALL] POST /api/documents/upload -> Uploading PDF document")
     if "file" not in request.files:
         doc_id = f"doc_{int(time.time())}"
-        print(f"[DOC UPLOAD] Sample PDF requested -> Generating sample doc ID: {doc_id}")
         new_doc = {
             "id": doc_id,
             "name": "sample.pdf",
@@ -151,59 +169,71 @@ def upload_document():
             ]
         }
         save_document(new_doc)
+        print(f"[API] POST /api/documents/upload -> Sample doc generated: {doc_id}")
         return jsonify({"status": "success", "document": new_doc}), 200
 
     file = request.files["file"]
-    if not file.filename:
-        print("[DOC UPLOAD ERROR] Empty filename submitted in upload_document")
-        return jsonify({"error": "Empty filename"}), 400
+    if not file or not file.filename:
+        print("[API] POST /api/documents/upload (Error: Empty filename)")
+        return jsonify({"error": "Empty filename submitted"}), 400
 
-    filename = secure_filename(file.filename)
+    raw_filename = file.filename.strip()
+    if not raw_filename:
+        print("[API] POST /api/documents/upload (Error: Empty filename)")
+        return jsonify({"error": "Empty filename submitted"}), 400
+
+    ext = raw_filename.rsplit(".", 1)[1].lower().strip() if "." in raw_filename else ""
+    clean_filename = secure_filename(raw_filename)
+    if not clean_filename or "." not in clean_filename:
+        clean_ext = ext if ext else "pdf"
+        clean_filename = f"document_{int(time.time())}.{clean_ext}"
+
     doc_id = f"doc_{int(time.time())}"
-    filepath = os.path.join(UPLOADS_DIR, f"{doc_id}_{filename}")
-    file.save(filepath)
+    filepath = os.path.join(UPLOADS_DIR, f"{doc_id}_{clean_filename}")
 
-    print(f"[DOC UPLOAD] Machine PDF file saved to disk: {filepath}")
+    try:
+        file.save(filepath)
+    except Exception as save_err:
+        print(f"[API] POST /api/documents/upload (Save Error: {save_err})")
+        return jsonify({"error": f"Failed to save uploaded file: {str(save_err)}"}), 500
+
     analysis = inspect_pdf(filepath)
 
     new_doc = {
         "id": doc_id,
-        "name": filename,
+        "name": raw_filename,
         "date": time.strftime("%m/%d/%Y, %I:%M:%S %p"),
-        "pages": analysis["pages"],
-        "fields": len(analysis["fields"]),
+        "pages": analysis.get("pages", 1),
+        "fields": len(analysis.get("fields", [])),
         "status": "PENDING",
         "file_path": filepath,
-        "fields_detail": analysis["fields"]
+        "fields_detail": analysis.get("fields", [])
     }
     save_document(new_doc)
-    print(f"[DOC UPLOAD SUCCESS] Document '{filename}' analyzed ({analysis['pages']} pages, {len(analysis['fields'])} signature fields detected)")
+    print(f"[API] POST /api/documents/upload -> Document uploaded: '{raw_filename}' ({new_doc['pages']} page(s))")
     return jsonify({"status": "success", "document": new_doc}), 200
 
 
 @app.route("/api/documents", methods=["GET"])
 def list_documents():
     user_email = request.args.get("user_email")
-    print(f"[API CALL] GET /api/documents -> Listing documents for user_email: '{user_email or 'all'}'")
     docs = get_user_documents(user_email)
-    print(f"[DOC LIST SUCCESS] Returned {len(docs)} documents for user: '{user_email or 'all'}'")
+    print(f"[API] GET /api/documents -> Listed {len(docs)} doc(s) for user: '{user_email or 'all'}'")
     return jsonify({"documents": docs}), 200
 
 
 @app.route("/api/documents/<doc_id>", methods=["GET"])
 def get_document(doc_id):
-    print(f"[API CALL] GET /api/documents/{doc_id} -> Fetching document details")
     doc = get_document_by_id(doc_id)
     if not doc:
-        print(f"[DOC ERROR] Document ID '{doc_id}' not found")
+        print(f"[API] GET /api/documents/{doc_id} (Not found)")
         return jsonify({"error": "Document not found"}), 404
-    print(f"[DOC SUCCESS] Retreived document '{doc.get('name')}' (ID: {doc_id})")
+    print(f"[API] GET /api/documents/{doc_id} -> Retrieved '{doc.get('name')}'")
     return jsonify({"document": doc}), 200
 
 
 @app.route("/api/documents/<doc_id>/sign", methods=["POST"])
 def sign_document(doc_id):
-    print(f"[API CALL] POST /api/documents/{doc_id}/sign -> Signing document")
     data = request.get_json() or {}
     signature_data = data.get("signature")
     fields = data.get("fields") or []
@@ -226,13 +256,12 @@ def sign_document(doc_id):
     output_pdf_path = os.path.join(SIGNED_DIR, output_pdf_filename)
 
     if signature_data:
-        print(f"[SIGNING ENGINE] Stamping signature on {len(fields)} field location(s)...")
         apply_signature_and_save(input_pdf_path, signature_data, fields, output_pdf_path)
 
     doc["status"] = "SIGNED"
     doc["signed_file_path"] = output_pdf_path
     save_document(doc)
-    print(f"[SIGN SUCCESS] Document '{doc.get('name')}' (ID: {doc_id}) signed successfully! Saved to: {output_pdf_path}")
+    print(f"[API] POST /api/documents/{doc_id}/sign -> Document signed: '{doc.get('name')}'")
 
     return jsonify({
         "status": "success",
@@ -244,12 +273,11 @@ def sign_document(doc_id):
 
 @app.route("/api/documents/<doc_id>/download", methods=["GET"])
 def download_document(doc_id):
-    print(f"[API CALL] GET /api/documents/{doc_id}/download -> Downloading signed document")
     doc = get_document_by_id(doc_id)
     signed_path = doc.get("signed_file_path") if doc else None
     
     if signed_path and os.path.exists(signed_path):
-        print(f"[DOWNLOAD SUCCESS] Sending signed PDF file: {signed_path}")
+        print(f"[API] GET /api/documents/{doc_id}/download -> Sending signed PDF")
         return send_file(
             signed_path,
             as_attachment=True,
@@ -257,7 +285,7 @@ def download_document(doc_id):
             mimetype="application/pdf"
         )
     else:
-        print(f"[DOWNLOAD CERTIFICATE] Signed PDF file not on disk -> Sending digital certificate for ID: {doc_id}")
+        print(f"[API] GET /api/documents/{doc_id}/download -> Sending digital certificate")
         cert_content = f"AutoSign AI - Signed Document Certificate\n\nDocument ID: {doc_id}\nSigned Date: {doc.get('date') if doc else time.strftime('%c')}\nStatus: VERIFIED_DIGITAL_SIGNATURE"
         buf = io.BytesIO(cert_content.encode("utf-8"))
         return send_file(
@@ -270,5 +298,5 @@ def download_document(doc_id):
 
 if __name__ == "__main__":
     port = config.PORT
-    print(f"[INFO] AutoSign AI Flask Backend running on http://127.0.0.1:{port} ({config.ENV} mode)")
-    app.run(host="0.0.0.1", port=port, debug=True)
+    print(f"[INFO] AutoSign AI Backend running on http://127.0.0.1:{port}")
+    app.run(host="0.0.0.0", port=port, debug=True)
