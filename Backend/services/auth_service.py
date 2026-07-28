@@ -2,13 +2,49 @@ import os
 import time
 import jwt
 import requests
+import json
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
-from services.storage_service import get_user_by_email, save_user
 import config
 
 SECRET_KEY = config.SECRET_KEY
 GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+os.makedirs(DATA_DIR, exist_ok=True)
+USERS_FILE = os.path.join(DATA_DIR, "users.json")
+
+
+def _read_users():
+    if not os.path.exists(USERS_FILE):
+        return []
+    try:
+        with open(USERS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def _write_users(users):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(users, f, indent=2, default=str)
+
+
+def get_user_by_email(email):
+    users = _read_users()
+    return next((u for u in users if u.get("email") == email), None)
+
+
+def save_user(user_data):
+    users = _read_users()
+    existing_idx = next((i for i, u in enumerate(users) if u.get("email") == user_data.get("email")), None)
+    if existing_idx is not None:
+        users[existing_idx].update(user_data)
+    else:
+        users.append(user_data)
+    _write_users(users)
+    return user_data
 
 
 def generate_token(user):

@@ -6,7 +6,6 @@ def read_pdf(pdf_path: str):
     if not os.path.exists(pdf_path):
         print(f"[PDF READER] File not found: '{pdf_path}'")
         return {"is_scanned": True, "total_pages": 1, "items": []}
-
     try:
         doc = fitz.open(pdf_path)
         total_pages = len(doc)

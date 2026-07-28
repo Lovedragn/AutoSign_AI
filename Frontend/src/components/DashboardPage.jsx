@@ -22,8 +22,11 @@ export default function DashboardPage({ user, signature, setSignature, documents
     if (user?.email) {
       fetchDocumentsApi(user.email).then((remoteDocs) => {
         if (remoteDocs && remoteDocs.length > 0) {
-          setDocuments(remoteDocs);
-          localStorage.setItem("autosign_docs", JSON.stringify(remoteDocs));
+          const map = new Map();
+          remoteDocs.forEach((d) => { if (d && d.id) map.set(d.id, d); });
+          const uniqueDocs = Array.from(map.values());
+          setDocuments(uniqueDocs);
+          localStorage.setItem("autosign_docs", JSON.stringify(uniqueDocs));
         }
       });
     }
@@ -545,9 +548,9 @@ export default function DashboardPage({ user, signature, setSignature, documents
                 </tr>
               </thead>
               <tbody>
-                {documents.slice(0, 5).map((doc) => (
+                {documents.slice(0, 5).map((doc, idx) => (
                   <tr
-                    key={doc.id}
+                    key={`${doc.id}_${idx}`}
                     onClick={() => {
                       setSelectedDoc(doc);
                       setCurrentPage("preview");

@@ -51,7 +51,12 @@ export default function App() {
     const saved = localStorage.getItem("autosign_docs");
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const map = new Map();
+          parsed.forEach((d) => { if (d && d.id) map.set(d.id, d); });
+          return Array.from(map.values());
+        }
       } catch {
         // Fallback below
       }

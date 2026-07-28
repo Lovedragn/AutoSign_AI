@@ -50,9 +50,9 @@ export default function HistoryPage({ documents, setDocuments, setCurrentPage, s
               </tr>
             </thead>
             <tbody>
-              {documents.map((doc) => (
+              {documents.map((doc, idx) => (
                 <tr
-                  key={doc.id}
+                  key={`${doc.id}_${idx}`}
                   onClick={() => {
                     setSelectedDoc(doc);
                     setCurrentPage("preview");

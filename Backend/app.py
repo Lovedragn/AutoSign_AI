@@ -34,7 +34,7 @@ app.config["SECRET_KEY"] = config.SECRET_KEY
 app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32 MB max file size
 
 # Enable CORS for all frontend origins and preflight OPTIONS requests
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 
 # Register Controller Blueprints
 app.register_blueprint(auth_bp)

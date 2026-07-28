@@ -115,7 +115,14 @@ export default function AuthPage({ mode, setCurrentPage, setUser }) {
         <button
           type="button"
           disabled={loadingGoogle}
-          onClick={() => googleLogin()}
+          onClick={() => {
+            try {
+              googleLogin();
+            } catch (err) {
+              console.error("Google Login trigger error:", err);
+              setAuthError("Google sign-in error: Missing or invalid Google Client ID.");
+            }
+          }}
           className="w-full h-14 bg-white text-black font-mono text-xs tracking-wider uppercase flex items-center justify-center gap-4 hover:bg-[#CCFF00] transition-all duration-200 cursor-pointer disabled:opacity-50 font-bold shadow-xl shadow-white/5 group border border-white"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" className="group-hover:scale-110 transition-transform">
