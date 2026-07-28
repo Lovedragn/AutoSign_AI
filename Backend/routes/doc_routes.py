@@ -24,7 +24,7 @@ def upload_signature():
             filename = secure_filename(f"sig_{int(time.time())}_{file.filename}")
             filepath = os.path.join(SIGNATURES_DIR, filename)
             file.save(filepath)
-            print(f"[SIGNATURE] Signature file saved: {filename}")
+            print(f"[API] POST /api/signatures/upload -> File: {filename}")
             return jsonify({"status": "success", "signature_url": filepath}), 200
 
     data = request.get_json() or {}
@@ -34,17 +34,16 @@ def upload_signature():
         filepath = os.path.join(SIGNATURES_DIR, sig_id)
         with open(filepath, "w") as f:
             f.write(signature_data)
-        print(f"[SIGNATURE] Signature canvas image saved: {sig_id}")
+        print(f"[API] POST /api/signatures/upload -> Canvas PNG: {sig_id}")
         return jsonify({"status": "success", "signature": signature_data, "file_path": filepath}), 200
 
-    print("[SIGNATURE ERROR] Signature upload failed: No file or data provided")
+    print("[API] POST /api/signatures/upload (Error: Missing data)")
     return jsonify({"error": "No signature file or data provided"}), 400
 
 
 @doc_bp.route("/api/documents/upload", methods=["POST"])
 def upload_document():
     if "file" not in request.files:
-        # Fallback to mock / sample PDF upload
         doc_id = f"doc_{int(time.time())}"
         new_doc = {
             "id": doc_id,
@@ -58,14 +57,17 @@ def upload_document():
             ]
         }
         save_document(new_doc)
+        print(f"[API] POST /api/documents/upload -> Sample doc generated: {doc_id}")
         return jsonify({"status": "success", "document": new_doc}), 200
 
     file = request.files["file"]
     if not file or not file.filename:
+        print("[API] POST /api/documents/upload (Error: Empty filename)")
         return jsonify({"error": "Empty filename submitted"}), 400
 
     raw_filename = file.filename.strip()
     if not raw_filename:
+        print("[API] POST /api/documents/upload (Error: Empty filename)")
         return jsonify({"error": "Empty filename submitted"}), 400
 
     ext = raw_filename.rsplit(".", 1)[1].lower().strip() if "." in raw_filename else ""
@@ -80,9 +82,9 @@ def upload_document():
     try:
         file.save(filepath)
     except Exception as save_err:
+        print(f"[API] POST /api/documents/upload (Save Error: {save_err})")
         return jsonify({"error": f"Failed to save file: {str(save_err)}"}), 500
 
-    # Inspect PDF for page count and AI field detection
     analysis = inspect_pdf(filepath)
 
     new_doc = {
@@ -96,7 +98,7 @@ def upload_document():
         "fields_detail": analysis.get("fields", [])
     }
     save_document(new_doc)
-    print(f"[DOC UPLOAD] Document '{raw_filename}' uploaded ({new_doc['pages']} pages, {new_doc['fields']} signature fields detected)")
+    print(f"[API] POST /api/documents/upload -> Document uploaded: '{raw_filename}' ({new_doc['pages']} page(s))")
     return jsonify({"status": "success", "document": new_doc}), 200
 
 
@@ -104,7 +106,7 @@ def upload_document():
 def list_documents():
     user_email = request.args.get("user_email")
     docs = get_user_documents(user_email)
-    print(f"[DOC LIST] Fetched {len(docs)} documents for user: {user_email or 'all'}")
+    print(f"[API] GET /api/documents -> Listed {len(docs)} doc(s) for user: '{user_email or 'all'}'")
     return jsonify({"documents": docs}), 200
 
 
@@ -112,8 +114,9 @@ def list_documents():
 def get_document(doc_id):
     doc = get_document_by_id(doc_id)
     if not doc:
-        print(f"[DOC ERROR] Document ID '{doc_id}' not found")
+        print(f"[API] GET /api/documents/{doc_id} (Not found)")
         return jsonify({"error": "Document not found"}), 404
+    print(f"[API] GET /api/documents/{doc_id} -> Retrieved '{doc.get('name')}'")
     return jsonify({"document": doc}), 200
 
 
@@ -146,7 +149,7 @@ def sign_document(doc_id):
     doc["status"] = "SIGNED"
     doc["signed_file_path"] = output_pdf_path
     save_document(doc)
-    print(f"[SIGN SUCCESS] Document '{doc.get('name')}' (ID: {doc_id}) signed successfully with {len(fields)} fields! Saved to: {output_pdf_path}")
+    print(f"[API] POST /api/documents/{doc_id}/sign -> Document signed: '{doc.get('name')}'")
 
     return jsonify({
         "status": "success",
@@ -162,6 +165,7 @@ def download_document(doc_id):
     signed_path = doc.get("signed_file_path") if doc else None
     
     if signed_path and os.path.exists(signed_path):
+        print(f"[API] GET /api/documents/{doc_id}/download -> Sending signed PDF")
         return send_file(
             signed_path,
             as_attachment=True,
@@ -169,7 +173,7 @@ def download_document(doc_id):
             mimetype="application/pdf"
         )
     else:
-        # Generate text certificate if PDF doesn't exist on disk
+        print(f"[API] GET /api/documents/{doc_id}/download -> Sending digital certificate")
         cert_content = f"AutoSign AI - Signed Document Certificate\n\nDocument ID: {doc_id}\nSigned Date: {doc.get('date') if doc else time.strftime('%c')}\nStatus: VERIFIED_DIGITAL_SIGNATURE"
         buf = io.BytesIO(cert_content.encode("utf-8"))
         return send_file(

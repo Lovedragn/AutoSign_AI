@@ -151,7 +151,7 @@ export default function DashboardPage({ user, signature, setSignature, documents
   const handlePDFUpload = async (file) => {
     if (!signature || uploadingPdf) return;
     setUploadingPdf(true);
-    console.log("Good pdf handling");
+
     try {
       // Call backend API for upload & AI field inspection
       const uploadResult = await uploadDocumentApi(file);
