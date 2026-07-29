@@ -59,7 +59,7 @@ app.register_blueprint(doc_bp)
 # ==========================================
 # HEALTH CHECK
 # ==========================================
-@app.route("/api/health", methods=["GET"])
+@app.route("/", methods=["GET"])
 def health_check():
     print(f"[API] GET /api/health")
     return jsonify({
