@@ -3,6 +3,18 @@ import { API_BASE_URL } from "../config";
 const rawUrl = (API_BASE_URL || "http://127.0.0.1:5000").replace(/\/+$/, "");
 const API_BASE = rawUrl.endsWith("/api") ? rawUrl : `${rawUrl}/api`;
 
+export async function pingBackend() {
+  try {
+    const rootUrl = rawUrl.replace(/\/api$/, "");
+    const res = await fetch(`${rootUrl}/`, { method: "GET" });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.log("[AutoSign] Backend cold-start pinging...");
+    return null;
+  }
+}
+
 export async function authGoogle(tokenResponse, extraData = {}) {
   try {
     const res = await fetch(`${API_BASE}/auth/google`, {

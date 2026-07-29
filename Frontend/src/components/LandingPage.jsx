@@ -33,7 +33,9 @@ export default function LandingPage({ setCurrentPage, setUser }) {
   const box1Ref = useRef(null);
   const box2Ref = useRef(null);
   const box3Ref = useRef(null);
-
+  useEffect(() => {
+    pingBackend();
+  }, []);
   useEffect(() => {
     const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 

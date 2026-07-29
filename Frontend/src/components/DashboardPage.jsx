@@ -1,13 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { Upload, FileText, Check, PenTool, Trash2, ArrowRight, RefreshCw } from "lucide-react";
 import gsap from "gsap";
-import { uploadSignatureApi, uploadDocumentApi, fetchDocumentsApi } from "../api/client";
+import { uploadSignatureApi, uploadDocumentApi, fetchDocumentsApi, pingBackend } from "../api/client";
 
 export default function DashboardPage({ user, signature, setSignature, documents, setDocuments, setCurrentPage, setSelectedDoc }) {
   const [activeTab, setActiveTab] = useState("draw"); // "draw" | "upload"
   const [isDrawing, setIsDrawing] = useState(false);
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+
+  useEffect(() => {
+    pingBackend();
+  }, []);
 
   useEffect(() => {
     if (containerRef.current) {
