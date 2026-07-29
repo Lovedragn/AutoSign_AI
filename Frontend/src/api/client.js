@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "../config";
 
-const rawUrl = (API_BASE_URL || "http://127.0.0.1:5000").replace(/\/+$/, "");
+const rawUrl = (API_BASE_URL || "http://localhost:5000").replace(/\/+$/, "");
 const API_BASE = rawUrl.endsWith("/api") ? rawUrl : `${rawUrl}/api`;
 
 export async function pingBackend() {
