@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import gsap from "gsap";
-
+import { pingBackend } from "../api/client";
 const WORKFLOW_ITEMS = [
   {
     num: "01",
