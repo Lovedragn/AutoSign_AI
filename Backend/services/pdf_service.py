@@ -5,7 +5,6 @@ from PIL import Image
 import io
 
 from services.pdf_reader import extract_pdf_elements
-from services.ocr_space import process_scanned_pdf
 from services.confidence_engine import evaluate_confidence
 from services.placement_engine import calculate_signature_placement
 
@@ -19,16 +18,7 @@ def inspect_pdf(pdf_path):
         return {"pages": 1, "fields": []}
 
     pdf_res = extract_pdf_elements(pdf_path)
-    is_scanned = pdf_res.get("is_scanned", False)
     items = pdf_res.get("items", [])
-
-    if is_scanned:
-        try:
-            pdf_res = process_scanned_pdf(pdf_path)
-            items = pdf_res.get("items", [])
-        except Exception:
-            items = []
-
     num_pages = pdf_res.get("total_pages", 1)
 
     lines = []
@@ -41,23 +31,29 @@ def inspect_pdf(pdf_path):
         if len(doc) > 0:
             page_width = float(doc[0].rect.width)
             page_height = float(doc[0].rect.height)
-            drawings = doc[0].get_drawings()
-            for draw in drawings:
-                for item in draw.get("items", []):
-                    if item[0] == "l":  # line
-                        p1, p2 = item[1], item[2]
-                        lines.append({
-                            "page": 1,
-                            "type": "horizontal_line",
-                            "bbox": [p1.x, p1.y, p2.x, p2.y]
-                        })
-                    elif item[0] == "re":  # rectangle
-                        r = item[1]
-                        rectangles.append({
-                            "page": 1,
-                            "type": "rectangle",
-                            "bbox": [r.x0, r.y0, r.x1, r.y1]
-                        })
+            for p_idx, page_obj in enumerate(doc):
+                p_num = p_idx + 1
+                drawings = page_obj.get_drawings()
+                for draw in drawings:
+                    for item in draw.get("items", []):
+                        if item[0] == "l":  # line
+                            p1, p2 = item[1], item[2]
+                            lines.append({
+                                "page": p_num,
+                                "type": "horizontal_line",
+                                "bbox": [p1.x, p1.y, p2.x, p2.y]
+                            })
+                        elif item[0] == "re":  # rectangle
+                            r = item[1]
+                            r_w = abs(r.x1 - r.x0)
+                            r_h = abs(r.y1 - r.y0)
+                            # Ignore full-page paper background rectangles
+                            if r_w < (page_width * 0.85) and r_h < (page_height * 0.85):
+                                rectangles.append({
+                                    "page": p_num,
+                                    "type": "rectangle",
+                                    "bbox": [r.x0, r.y0, r.x1, r.y1]
+                                })
         doc.close()
     except Exception:
         pass
@@ -98,7 +94,7 @@ def inspect_pdf(pdf_path):
     # Fallback to top candidate if no fields >= 80% were mapped
     if not detected_fields and candidates:
         top_cand = candidates[0]
-        score = int(top_cand.get("confidence_score", 94))
+        score = int(top_cand.get("confidence_score", 85))
         placement = calculate_signature_placement(top_cand.get("candidate", top_cand), layout_info)
         detected_fields.append({
             "id": "field_auto_1",
@@ -116,16 +112,21 @@ def inspect_pdf(pdf_path):
         detected_fields.append({
             "id": "field_auto_1",
             "type": "SIGNATURE",
-            "confidence": "94%",
+            "confidence": "75%",
             "page": 1,
             "x": round(page_width * 0.45, 1),
             "y": round(page_height * 0.6, 1),
-            "width": 200.0,
-            "height": 70.0
+            "width": 180.0,
+            "height": 60.0
         })
 
     print(f"[PDF SERVICE] Inspected '{pdf_path}' ({num_pages} page(s), {len(detected_fields)} field(s) mapped)")
-    return {"pages": num_pages, "fields": detected_fields}
+    return {
+        "pages": num_pages,
+        "fields": detected_fields,
+        "page_width": page_width,
+        "page_height": page_height
+    }
 
 
 def apply_signature_and_save(pdf_path, signature_data_url_or_path, fields, output_path):

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { PenTool, Lock, Zap, CheckCircle2 } from "lucide-react";
+import { Lock, Zap, CheckCircle2 } from "lucide-react";
 import gsap from "gsap";
 import { useGoogleLogin } from "@react-oauth/google";
 import { authGoogle } from "../api/client";
@@ -83,9 +83,11 @@ export default function AuthPage({ mode, setCurrentPage, setUser }) {
           onClick={() => setCurrentPage("landing")}
           className="flex w-full items-center justify-center gap-3 cursor-pointer group"
         >
-          <div className="w-14 h-14 bg-[#CCFF00] flex items-center justify-center text-black group-hover:scale-105 transition-transform p-3">
-            <PenTool size={26} strokeWidth={2.5} />
-          </div>
+          <img
+            src="/favicon.svg"
+            alt="AutoSign AI"
+            className="w-14 h-14 object-contain group-hover:scale-105 transition-transform"
+          />
           <div className="flex flex-col items-center">
             <span className="font-serif text-5xl text-white leading-none">AutoSign</span>
             <span className="font-mono text-[9px] text-[#CCFF00] tracking-[0.3em] uppercase mt-2">

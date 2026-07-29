@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ArrowLeft, Plus, Check, ChevronLeft, ChevronRight, RefreshCw, FileText, Trash2, Maximize2, Minimize2 } from "lucide-react";
 import { signDocumentApi, getDownloadUrl, getDocumentFileUrl, getDocumentPagePreviewUrl } from "../api/client";
 
@@ -6,17 +6,17 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
   const defaultFields = doc?.fields_detail && doc.fields_detail.length > 0
     ? doc.fields_detail
     : [
-        {
-          id: "field_auto_1",
-          type: "SIGNATURE",
-          confidence: "94%",
-          page: 1,
-          x: 260,
-          y: 520,
-          width: 220,
-          height: 80
-        }
-      ];
+      {
+        id: "field_auto_1",
+        type: "SIGNATURE",
+        confidence: "94%",
+        page: 1,
+        x: 260,
+        y: 520,
+        width: 220,
+        height: 80
+      }
+    ];
 
   const [fields, setFields] = useState(defaultFields);
   const [activeFieldId, setActiveFieldId] = useState(defaultFields[0]?.id || null);
@@ -27,6 +27,40 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
   const pdfContainerRef = useRef(null);
   const isDraggingRef = useRef(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (doc?.fields_detail && doc.fields_detail.length > 0) {
+      setFields(doc.fields_detail);
+      setActiveFieldId(doc.fields_detail[0]?.id || null);
+    }
+  }, [doc]);
+
+  useEffect(() => {
+    const fieldsOnPage = fields.filter((f) => (f.page || 1) === page);
+    if (fieldsOnPage.length > 0 && !fieldsOnPage.some((f) => f.id === activeFieldId)) {
+      setActiveFieldId(fieldsOnPage[0].id);
+    }
+  }, [page, fields, activeFieldId]);
+
+  // Persist signature coordinates to localStorage autosign_docs
+  useEffect(() => {
+    if (doc?.id && fields && fields.length > 0) {
+      const savedDocsStr = localStorage.getItem("autosign_docs");
+      let allDocs = documents || [];
+      if (savedDocsStr) {
+        try {
+          allDocs = JSON.parse(savedDocsStr);
+        } catch (e) {}
+      }
+      const updatedDocs = allDocs.map((d) =>
+        d.id === doc.id ? { ...d, fields_detail: fields, fields: fields.length } : d
+      );
+      if (typeof setDocuments === "function") {
+        setDocuments(updatedDocs);
+      }
+      localStorage.setItem("autosign_docs", JSON.stringify(updatedDocs));
+    }
+  }, [fields, doc?.id]);
 
   const addManualField = () => {
     const newField = {
@@ -58,10 +92,10 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
       prev.map((f) =>
         f.id === fieldId
           ? {
-              ...f,
-              width: Math.max(80, Math.min(400, f.width + dw)),
-              height: Math.max(35, Math.min(180, f.height + dh))
-            }
+            ...f,
+            width: Math.max(80, Math.min(400, f.width + dw)),
+            height: Math.max(35, Math.min(180, f.height + dh))
+          }
           : f
       )
     );
@@ -99,10 +133,10 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
   const handleSignAndDownload = async () => {
     setIsSigning(true);
     const docId = doc?.id || "doc_sample_1";
-    
+
     // Call Python Flask backend to stamp signature on PDF
     await signDocumentApi(docId, signature, fields);
-    
+
     setIsSigning(false);
     setSignedDone(true);
 
@@ -122,8 +156,6 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
     downloadLink.click();
     document.body.removeChild(downloadLink);
   };
-
-  const isSamplePdf = !doc?.name || doc.name.toLowerCase() === "sample.pdf";
 
   return (
     <div
@@ -226,7 +258,7 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
                     <div style={{ fontSize: "0.8rem", color: "#fff", fontWeight: "600" }}>
                       {f.type} · Page {f.page || 1}
                     </div>
-                    <div style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Confidence: {f.confidence || "94%"}</div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Confidence: {f.confidence || "100%"}</div>
                   </div>
 
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -372,7 +404,7 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
             }}
           >
             {/* Real Uploaded PDF Page Image Canvas - 0 SCROLLBARS */}
-            {doc?.id && doc?.id !== "doc_sample_1" ? (
+            {doc?.id ? (
               <img
                 key={`pdf_page_img_${doc.id}_${page}`}
                 src={getDocumentPagePreviewUrl(doc.id, page)}
@@ -390,155 +422,93 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
                   backgroundColor: "#fff"
                 }}
               />
-            ) : isSamplePdf ? (
-              <>
-                {/* Sample NDA Document Layout */}
-                <div style={{ borderBottom: "2px solid #333", paddingBottom: "1rem", marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", position: "relative", zIndex: 2 }}>
-                  <div>
-                    <h2 style={{ fontSize: "1.75rem", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.05em", color: "#111" }}>
-                      MUTUAL NON-DISCLOSURE AGREEMENT
-                    </h2>
-                    <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontFamily: "sans-serif", marginTop: "4px" }}>
-                      DOCUMENT REF: #AUTOSIGN-SAMPLE
-                    </p>
-                  </div>
-                  <div style={{ fontSize: "0.8rem", fontFamily: "sans-serif", color: "#555" }}>CONFIDENTIAL</div>
-                </div>
-
-                <div style={{ fontSize: "0.95rem", lineHeight: "1.8", color: "#222", marginBottom: "2rem", position: "relative", zIndex: 2 }}>
-                  <p style={{ marginBottom: "1.25rem" }}>
-                    This Mutual Non-Disclosure Agreement ("Agreement") is entered into as of the date signed below by and between the Receiving Party and the Disclosing Party.
-                  </p>
-                  <p style={{ marginBottom: "1.25rem" }}>
-                    1. <strong>Confidential Information.</strong> Confidential information includes all proprietary information, trade secrets, software algorithms, document field coordinates, and machine learning models disclosed under this agreement.
-                  </p>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* User Real Uploaded Document Layout */}
-                <div style={{ borderBottom: "2px solid #111", paddingBottom: "1rem", marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", position: "relative", zIndex: 2 }}>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--acid-green)", fontSize: "0.8rem", fontFamily: "sans-serif", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px" }}>
-                      <FileText size={16} />
-                      <span>UPLOADED DOCUMENT</span>
-                    </div>
-                    <h2 style={{ fontSize: "1.75rem", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.05em", color: "#111", wordBreak: "break-all" }}>
-                      {doc?.name || "UPLOADED_DOCUMENT.PDF"}
-                    </h2>
-                    <p style={{ fontSize: "0.85rem", color: "#666", fontFamily: "sans-serif", marginTop: "4px" }}>
-                      UPLOADED DATE: {doc?.date || new Date().toLocaleString()} · {doc?.pages || 1} PAGE(S)
-                    </p>
-                  </div>
-                  <div style={{ fontSize: "0.8rem", fontFamily: "sans-serif", color: "#333", border: "1px solid #ccc", padding: "4px 8px" }}>
-                    OFFICIAL PDF
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Signature Line Section on Page */}
-            {(!doc?.id || doc?.id === "doc_sample_1") && (
-              <div style={{ position: "absolute", bottom: "140px", left: "60px", right: "60px", display: "flex", justifyContent: "space-between", borderTop: "1px solid #ddd", paddingTop: "1.5rem", zIndex: 2 }}>
-                <div style={{ width: "260px" }}>
-                  <div style={{ borderBottom: "1px solid #444", height: "40px", marginBottom: "6px" }} />
-                  <div style={{ fontSize: "0.8rem", fontFamily: "sans-serif", color: "#444" }}>Authorized Representative Signature</div>
-                  <div style={{ fontSize: "0.75rem", fontFamily: "sans-serif", color: "#777" }}>Date: {new Date().toLocaleDateString()}</div>
-                </div>
-
-                <div style={{ width: "260px" }}>
-                  <div style={{ borderBottom: "1px solid #444", height: "40px", marginBottom: "6px" }} />
-                  <div style={{ fontSize: "0.8rem", fontFamily: "sans-serif", color: "#444" }}>Countersignature / Recipient</div>
-                  <div style={{ fontSize: "0.75rem", fontFamily: "sans-serif", color: "#777" }}>AutoSign AI Verified</div>
-                </div>
-              </div>
-            )}
+            ) : null}
 
             {/* Render Draggable & Resizable Virtual Bounding Box Overlays per Page */}
             {fields
               .filter((f) => (f.page || 1) === page)
               .map((f) => (
-              <div
-                key={f.id}
-                onMouseDown={(e) => handleMouseDown(e, f.id)}
-                className={`sig-field ${activeFieldId === f.id ? "active" : ""}`}
-                style={{
-                  left: `${f.x}px`,
-                  top: `${f.y}px`,
-                  width: `${f.width}px`,
-                  height: `${f.height}px`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  position: "absolute",
-                  zIndex: 10
-                }}
-              >
-                {/* Field Header Label with Actions */}
-                <div className="field-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span>{f.type} · {f.confidence || "94%"}</span>
-                  <button
-                    onClick={(e) => handleResizeField(e, f.id, -20, -10)}
-                    style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", padding: "0 2px" }}
-                    title="Shrink Field"
-                  >
-                    <Minimize2 size={10} />
-                  </button>
-                  <button
-                    onClick={(e) => handleResizeField(e, f.id, 20, 10)}
-                    style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", padding: "0 2px" }}
-                    title="Expand Field"
-                  >
-                    <Maximize2 size={10} />
-                  </button>
-                  {fields.length > 1 && (
+                <div
+                  key={f.id}
+                  onMouseDown={(e) => handleMouseDown(e, f.id)}
+                  className={`sig-field ${activeFieldId === f.id ? "active" : ""}`}
+                  style={{
+                    left: `${f.x}px`,
+                    top: `${f.y}px`,
+                    width: `${f.width}px`,
+                    height: `${f.height}px`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    position: "absolute",
+                    zIndex: 10
+                  }}
+                >
+                  {/* Field Header Label with Actions */}
+                  <div className="field-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>{f.type} · {f.confidence || "100%"}</span>
                     <button
-                      onClick={(e) => handleDeleteField(e, f.id)}
-                      style={{ background: "none", border: "none", color: "#ff4d4d", cursor: "pointer", padding: "0 2px" }}
-                      title="Delete Field"
+                      onClick={(e) => handleResizeField(e, f.id, -20, -10)}
+                      style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", padding: "0 2px" }}
+                      title="Shrink Field"
                     >
-                      <Trash2 size={10} />
+                      <Minimize2 size={10} />
                     </button>
+                    <button
+                      onClick={(e) => handleResizeField(e, f.id, 20, 10)}
+                      style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", padding: "0 2px" }}
+                      title="Expand Field"
+                    >
+                      <Maximize2 size={10} />
+                    </button>
+                    {fields.length > 1 && (
+                      <button
+                        onClick={(e) => handleDeleteField(e, f.id)}
+                        style={{ background: "none", border: "none", color: "#ff4d4d", cursor: "pointer", padding: "0 2px" }}
+                        title="Delete Field"
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    )}
+                  </div>
+
+                  {signature ? (
+                    <img
+                      src={signature}
+                      alt="Signature Overlay"
+                      onLoad={(e) => {
+                        const { naturalWidth, naturalHeight } = e.target;
+                        if (naturalWidth > 0 && naturalHeight > 0) {
+                          const aspect = naturalWidth / naturalHeight;
+                          setFields((prev) =>
+                            prev.map((fieldItem) => {
+                              if (fieldItem.id === f.id) {
+                                const calcW = Math.min(300, Math.max(90, Math.round(fieldItem.height * aspect)));
+                                const calcH = Math.max(30, Math.round(calcW / aspect));
+                                if (Math.abs(fieldItem.width - calcW) > 4 || Math.abs(fieldItem.height - calcH) > 4) {
+                                  return { ...fieldItem, width: calcW, height: calcH };
+                                }
+                              }
+                              return fieldItem;
+                            })
+                          );
+                        }
+                      }}
+                      style={{
+                        width: "70%",
+                        height: "70%",
+                        objectFit: "contain",
+                        filter: "contrast(150%) brightness(0.2)",
+                        pointerEvents: "none"
+                      }}
+                    />
+                  ) : (
+                    <div style={{ color: "var(--acid-green)", fontSize: "0.75rem", fontWeight: "600", pointerEvents: "none" }}>
+                      ✦ SIGNATURE HERE
+                    </div>
                   )}
                 </div>
-
-                {signature ? (
-                  <img
-                    src={signature}
-                    alt="Signature Overlay"
-                    onLoad={(e) => {
-                      const { naturalWidth, naturalHeight } = e.target;
-                      if (naturalWidth > 0 && naturalHeight > 0) {
-                        const aspect = naturalWidth / naturalHeight;
-                        setFields((prev) =>
-                          prev.map((fieldItem) => {
-                            if (fieldItem.id === f.id) {
-                              const calcW = Math.min(300, Math.max(90, Math.round(fieldItem.height * aspect)));
-                              const calcH = Math.max(30, Math.round(calcW / aspect));
-                              if (Math.abs(fieldItem.width - calcW) > 4 || Math.abs(fieldItem.height - calcH) > 4) {
-                                return { ...fieldItem, width: calcW, height: calcH };
-                              }
-                            }
-                            return fieldItem;
-                          })
-                        );
-                      }
-                    }}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      filter: "contrast(200%) brightness(0.2)",
-                      pointerEvents: "none"
-                    }}
-                  />
-                ) : (
-                  <div style={{ color: "var(--acid-green)", fontSize: "0.75rem", fontWeight: "600", pointerEvents: "none" }}>
-                    ✦ SIGNATURE HERE
-                  </div>
-                )}
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       </div>

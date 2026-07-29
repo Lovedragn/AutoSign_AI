@@ -529,14 +529,6 @@ export default function DashboardPage({ user, signature, setSignature, documents
                       >
                         Select PDF File
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handlePDFUpload("sample.pdf")}
-                        className="btn-outline-acid"
-                        style={{ padding: "0.6rem 1.25rem", fontSize: "0.8rem" }}
-                      >
-                        Try sample.pdf
-                      </button>
                     </div>
                   )}
                 </>

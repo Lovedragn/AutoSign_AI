@@ -131,6 +131,8 @@ def upload_document():
         "fields": len(analysis.get("fields", [])),
         "status": "PENDING",
         "file_path": filepath,
+        "page_width": analysis.get("page_width", 595.2),
+        "page_height": analysis.get("page_height", 841.8),
         "fields_detail": analysis.get("fields", [])
     }
     save_document(new_doc)

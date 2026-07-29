@@ -40,7 +40,8 @@ def read_pdf(pdf_path: str):
                                     round(bbox[3], 2)
                                 ],
                                 "font": span.get("font", "Unknown"),
-                                "size": round(span.get("size", 0), 2)
+                                "size": round(span.get("size", 0), 2),
+                                "confidence": 100
                             })
 
         doc.close()

@@ -25,31 +25,38 @@ def calculate_signature_placement(candidate: dict, layout_info: dict = None) -> 
 
     target_rect = None
     for r in rectangles:
-        r_box = r.get("bbox", [0, 0, 0, 0])
-        rx1, ry1, rx2, ry2 = [float(v) for v in r_box]
-        if (rx1 <= kw_x1 + 40 and rx2 >= kw_x2 - 40 and ry1 <= kw_y1 + 50 and ry2 >= kw_y2 - 10) or \
-           abs(ry1 - kw_y1) <= 50.0:
-            target_rect = (rx1, ry1, rx2, ry2)
-            break
+        if r.get("page", 1) == page_num:
+            r_box = r.get("bbox", [0, 0, 0, 0])
+            rx1, ry1, rx2, ry2 = [float(v) for v in r_box]
+            r_w = abs(rx2 - rx1)
+            r_h = abs(ry2 - ry1)
+            if r_w >= page_width * 0.85 or r_h >= page_height * 0.85:
+                continue
+            # Require candidate to overlap or be adjacent in both X and Y dimensions
+            if (rx1 <= kw_x2 + 40 and rx2 >= kw_x1 - 40 and ry1 <= kw_y2 + 40 and ry2 >= kw_y1 - 40):
+                target_rect = (rx1, ry1, rx2, ry2)
+                break
 
     target_line = None
     if not target_rect:
         for l in lines:
-            l_box = l.get("bbox", [0, 0, 0, 0])
-            lx1, ly1, lx2, ly2 = [float(v) for v in l_box]
-            if abs(ly1 - ly2) <= 5.0 and (lx2 - lx1) >= 40.0:
-                if abs(ly1 - kw_y2) <= 50.0 or abs(ly1 - kw_y1) <= 50.0:
-                    target_line = (lx1, ly1, lx2, ly2)
-                    break
+            if l.get("page", 1) == page_num:
+                l_box = l.get("bbox", [0, 0, 0, 0])
+                lx1, ly1, lx2, ly2 = [float(v) for v in l_box]
+                if abs(ly1 - ly2) <= 8.0 and (lx2 - lx1) >= 30.0:
+                    if abs(ly1 - kw_y2) <= 65.0 or abs(ly1 - kw_y1) <= 65.0:
+                        target_line = (lx1, ly1, lx2, ly2)
+                        break
 
     target_arrow = None
     if not target_rect and not target_line:
         for a in arrows:
-            a_box = a.get("bbox", [0, 0, 0, 0])
-            ax1, ay1, ax2, ay2 = [float(v) for v in a_box]
-            if abs(ay1 - kw_y1) <= 60.0:
-                target_arrow = (ax1, ay1, ax2, ay2, a.get("direction", "right"))
-                break
+            if a.get("page", 1) == page_num:
+                a_box = a.get("bbox", [0, 0, 0, 0])
+                ax1, ay1, ax2, ay2 = [float(v) for v in a_box]
+                if abs(ay1 - kw_y1) <= 65.0:
+                    target_arrow = (ax1, ay1, ax2, ay2, a.get("direction", "right"))
+                    break
 
     if target_rect:
         rx1, ry1, rx2, ry2 = target_rect
@@ -71,12 +78,12 @@ def calculate_signature_placement(candidate: dict, layout_info: dict = None) -> 
         sig_h = round(sig_w * 0.3, 1)
 
         sig_x = lx1 + (l_w - sig_w) / 2.0
-        sig_y = ly1 - sig_h + (sig_h * 0.15)
+        sig_y = ly1 - sig_h + (sig_h * 0.1)
         rule_applied = "HORIZONTAL_LINE_CENTERED"
 
     elif target_arrow:
         ax1, ay1, ax2, ay2, direction = target_arrow
-        sig_w = min(max(160.0, kw_w * 1.5), page_width * 0.35)
+        sig_w = min(max(150.0, kw_w * 1.5), page_width * 0.35)
         sig_h = round(sig_w * 0.3, 1)
 
         if direction == "right":
@@ -91,12 +98,25 @@ def calculate_signature_placement(candidate: dict, layout_info: dict = None) -> 
         rule_applied = "ARROW_DIRECTION_FOLLOWED"
 
     else:
-        sig_w = min(max(160.0, kw_w * 1.5), page_width * 0.35)
-        sig_h = round(sig_w * 0.3, 1)
+        sig_w = min(max(130.0, kw_w * 1.3), page_width * 0.3)
+        sig_h = round(sig_w * 0.28, 1)
 
-        sig_x = kw_x1
-        sig_y = kw_y2 + 8.0
-        rule_applied = "KEYWORD_BELOW"
+        text_lower = cand_text.lower()
+        if "___" in text_lower or "signature" in text_lower or "line" in text_lower:
+            # Shift X right to start after "Signature:" prefix and center over underline
+            if "signature" in text_lower and "___" in text_lower:
+                sig_x = kw_x1 + 45.0
+            else:
+                sig_x = kw_x1
+
+            # Reduce Y value to move signature box higher up
+            sig_y = kw_y1 - sig_h -160
+            rule_applied = "UNDERLINE_ABOVE"
+        else:
+            # Place signature directly below keyword with minimal gap
+            sig_x = kw_x1
+            sig_y = kw_y2 + 2.0
+            rule_applied = "KEYWORD_BELOW"
 
     sig_w = max(60.0, min(sig_w, page_width * 0.6))
     sig_h = max(25.0, min(sig_h, page_height * 0.3))

@@ -1,4 +1,4 @@
-import { PenTool, LogOut, ArrowRight } from "lucide-react";
+import { LogOut, ArrowRight } from "lucide-react";
 
 export default function Header({ currentPage, setCurrentPage, user, setUser }) {
   return (
@@ -17,7 +17,7 @@ export default function Header({ currentPage, setCurrentPage, user, setUser }) {
       }}>
         {/* Brand / Logo */}
         <div
-          onClick={() => setCurrentPage("landing")}
+          onClick={() => window.location.reload()}
           style={{
             display: "flex",
             alignItems: "center",
@@ -26,17 +26,11 @@ export default function Header({ currentPage, setCurrentPage, user, setUser }) {
             userSelect: "none"
           }}
         >
-          <div style={{
-            width: "32px",
-            height: "32px",
-            backgroundColor: "var(--acid-green)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#000"
-          }}>
-            <PenTool size={18} strokeWidth={2.5} />
-          </div>
+          <img
+            src="/favicon.svg"
+            alt="AutoSign AI"
+            style={{ width: "32px", height: "32px", objectFit: "contain" }}
+          />
           <div style={{ display: "flex", flexDirection: "column", leading: 1 }}>
             <span className="font-serif" style={{ fontSize: "1.25rem", fontWeight: "600", color: "#fff" }}>
               AutoSign

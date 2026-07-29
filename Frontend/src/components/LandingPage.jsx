@@ -212,7 +212,7 @@ export default function LandingPage({ setCurrentPage, setUser }) {
       </section>
 
       {/* CTA SECTION */}
-      <section className="w-full min-h-[60vh] px-6 md:px-12 lg:px-16 py-12 border-b border-white/10 flex flex-col items-center gap-8 justify-center text-center">
+      <section className="w-full min-h-[80vh] px-6 md:px-12 lg:px-16 py-12 border-b border-white/10 flex flex-col items-center gap-8 justify-center text-center">
         <div className="max-w-3xl mx-auto w-full my-auto flex flex-col items-center justify-center gap-8">
           <p className="font-mono text-xs uppercase tracking-[0.25em] text-[#CCFF00] mb-4">Ready?</p>
           <h2 className="mx-auto mt-0 mb-12 md:mb-16 max-w-3xl font-serif text-5xl md:text-5xl lg:text-[60px] leading-[1.05] text-white font-normal">
@@ -231,16 +231,22 @@ export default function LandingPage({ setCurrentPage, setUser }) {
         </div>
         <div className=" flex items-center justify-center gap-2 font-mono text-xs uppercase tracking-[0.25em] text-white/60">
           <Sparkles className="h-3.5 w-3.5 text-[#CCFF00]" />
-          Powered by Google Cloud Vision
+          Powered by Render & Python
         </div>
 
       </section>
 
       {/* FOOTER */}
-      <div className="border-t border-white/10 bg-black flex  flex-col items-center justify-between font-mono text-xs text-white/40 sm:flex-row">
+      <footer className="border-t border-white/10 bg-black px-6 md:px-12 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs text-white/40">
+        <div className="flex items-center gap-3">
+          <img src="/favicon.svg" alt="AutoSign AI" className="w-7 h-7 object-contain" />
+          <div className="flex items-center gap-1.5 font-serif text-sm text-white font-semibold">
+            AutoSign <span className="font-mono text-[9px] text-[#CCFF00] tracking-widest uppercase">AI</span>
+          </div>
+        </div>
         <span>© 2026 AutoSign AI — Sign smarter.</span>
         <span>v1.0 · MVP</span>
-      </div>
+      </footer>
     </div>
 
   );
