@@ -83,10 +83,67 @@ export default function DashboardPage({ user, signature, setSignature, documents
     ctx.stroke();
   };
 
+  const trimCanvas = (canvas, padding = 10) => {
+    if (!canvas) return "";
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
+
+    let minX = width;
+    let minY = height;
+    let maxX = 0;
+    let maxY = 0;
+    let found = false;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const alpha = data[(y * width + x) * 4 + 3];
+        if (alpha > 0) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+          found = true;
+        }
+      }
+    }
+
+    if (!found) {
+      return canvas.toDataURL("image/png");
+    }
+
+    const pMinX = Math.max(0, minX - padding);
+    const pMinY = Math.max(0, minY - padding);
+    const pMaxX = Math.min(width, maxX + padding);
+    const pMaxY = Math.min(height, maxY + padding);
+
+    const cropW = pMaxX - pMinX;
+    const cropH = pMaxY - pMinY;
+
+    if (cropW <= 0 || cropH <= 0) {
+      return canvas.toDataURL("image/png");
+    }
+
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = cropW;
+    tempCanvas.height = cropH;
+
+    const tempCtx = tempCanvas.getContext("2d");
+    tempCtx.drawImage(
+      canvas,
+      pMinX, pMinY, cropW, cropH,
+      0, 0, cropW, cropH
+    );
+
+    return tempCanvas.toDataURL("image/png");
+  };
+
   const stopDrawing = () => {
     if (isDrawing && canvasRef.current) {
       setIsDrawing(false);
-      const dataUrl = canvasRef.current.toDataURL("image/png");
+      const dataUrl = trimCanvas(canvasRef.current, 10);
       setSignature(dataUrl);
       localStorage.setItem("autosign_signature", dataUrl);
       uploadSignatureApi(dataUrl);

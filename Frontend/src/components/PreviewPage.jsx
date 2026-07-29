@@ -506,9 +506,28 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
                   <img
                     src={signature}
                     alt="Signature Overlay"
+                    onLoad={(e) => {
+                      const { naturalWidth, naturalHeight } = e.target;
+                      if (naturalWidth > 0 && naturalHeight > 0) {
+                        const aspect = naturalWidth / naturalHeight;
+                        setFields((prev) =>
+                          prev.map((fieldItem) => {
+                            if (fieldItem.id === f.id) {
+                              const calcW = Math.min(300, Math.max(90, Math.round(fieldItem.height * aspect)));
+                              const calcH = Math.max(30, Math.round(calcW / aspect));
+                              if (Math.abs(fieldItem.width - calcW) > 4 || Math.abs(fieldItem.height - calcH) > 4) {
+                                return { ...fieldItem, width: calcW, height: calcH };
+                              }
+                            }
+                            return fieldItem;
+                          })
+                        );
+                      }
+                    }}
                     style={{
-                      maxHeight: "85%",
-                      maxWidth: "90%",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "contain",
                       filter: "contrast(200%) brightness(0.2)",
                       pointerEvents: "none"
                     }}
