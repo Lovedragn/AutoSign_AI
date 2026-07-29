@@ -61,7 +61,6 @@ app.register_blueprint(doc_bp)
 # ==========================================
 @app.route("/", methods=["GET"])
 def health_check():
-    print(f"[API] GET /api/health")
     return jsonify({
         "status": "online",
         "service": "AutoSign AI Backend",
@@ -71,6 +70,6 @@ def health_check():
 
 
 if __name__ == "__main__":
-    port = config.PORT
+    port = int(os.environ.get("PORT", config.PORT))
     print(f"[INFO] AutoSign AI Backend running on http://127.0.0.1:{port}")
     app.run(host="0.0.0.0", port=port, debug=True)
