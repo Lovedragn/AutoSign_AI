@@ -3,6 +3,7 @@ import math
 DEFAULT_CONFIDENCE_CONFIG = {
     "keywords": {
         "authorized signature": 50,
+        "Sincerly":50,
         "signature": 50,
         "sign here": 45,
         "sign": 40,

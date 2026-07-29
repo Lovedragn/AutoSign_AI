@@ -208,7 +208,10 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
               {fields.map((f) => (
                 <div
                   key={f.id}
-                  onClick={() => setActiveFieldId(f.id)}
+                  onClick={() => {
+                    setActiveFieldId(f.id);
+                    if (f.page) setPage(f.page);
+                  }}
                   style={{
                     padding: "0.75rem 1rem",
                     backgroundColor: activeFieldId === f.id ? "rgba(204, 255, 0, 0.08)" : "var(--bg-card)",
@@ -220,7 +223,9 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: "0.8rem", color: "#fff", fontWeight: "600" }}>{f.type}</div>
+                    <div style={{ fontSize: "0.8rem", color: "#fff", fontWeight: "600" }}>
+                      {f.type} · Page {f.page || 1}
+                    </div>
                     <div style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Confidence: {f.confidence || "94%"}</div>
                   </div>
 
@@ -449,8 +454,10 @@ export default function PreviewPage({ doc, signature, setCurrentPage, setDocumen
               </div>
             )}
 
-            {/* Render Draggable & Resizable Virtual Bounding Box Overlays */}
-            {fields.map((f) => (
+            {/* Render Draggable & Resizable Virtual Bounding Box Overlays per Page */}
+            {fields
+              .filter((f) => (f.page || 1) === page)
+              .map((f) => (
               <div
                 key={f.id}
                 onMouseDown={(e) => handleMouseDown(e, f.id)}

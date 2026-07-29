@@ -4,7 +4,7 @@ import fitz  # PyMuPDF
 from PIL import Image
 import io
 
-from services.pdf_reader import read_pdf
+from services.pdf_reader import extract_pdf_elements
 from services.ocr_space import process_scanned_pdf
 from services.confidence_engine import evaluate_confidence
 from services.placement_engine import calculate_signature_placement
@@ -18,7 +18,7 @@ def inspect_pdf(pdf_path):
         print(f"[PDF SERVICE] File not found: '{pdf_path}'")
         return {"pages": 1, "fields": []}
 
-    pdf_res = read_pdf(pdf_path)
+    pdf_res = extract_pdf_elements(pdf_path)
     is_scanned = pdf_res.get("is_scanned", False)
     items = pdf_res.get("items", [])
 
@@ -72,21 +72,47 @@ def inspect_pdf(pdf_path):
     candidates = evaluate_confidence(items, layout_objects=lines + rectangles)
 
     detected_fields = []
-    if candidates:
+    seen_pages = set()
+
+    # Scan and map signature coordinates for all pages with confidence >= 80%
+    for cand in candidates:
+        score = int(cand.get("confidence_score", 0))
+        cand_data = cand.get("candidate", cand)
+        cand_page = cand_data.get("page", 1)
+
+        if score >= 80 and cand_page not in seen_pages:
+            seen_pages.add(cand_page)
+            placement = calculate_signature_placement(cand_data, layout_info)
+            detected_fields.append({
+                "id": f"field_auto_{len(detected_fields) + 1}",
+                "type": "SIGNATURE",
+                "confidence": f"{score}%",
+                "page": cand_page,
+                "x": placement["x"],
+                "y": placement["y"],
+                "width": placement["width"],
+                "height": placement["height"],
+                "matched_features": cand.get("matched_features", [])
+            })
+
+    # Fallback to top candidate if no fields >= 80% were mapped
+    if not detected_fields and candidates:
         top_cand = candidates[0]
+        score = int(top_cand.get("confidence_score", 94))
         placement = calculate_signature_placement(top_cand.get("candidate", top_cand), layout_info)
         detected_fields.append({
             "id": "field_auto_1",
             "type": "SIGNATURE",
-            "confidence": f"{int(top_cand.get('confidence_score', 94))}%",
-            "page": placement["page"],
+            "confidence": f"{score}%",
+            "page": placement.get("page", 1),
             "x": placement["x"],
             "y": placement["y"],
             "width": placement["width"],
             "height": placement["height"],
             "matched_features": top_cand.get("matched_features", [])
         })
-    else:
+
+    if not detected_fields:
         detected_fields.append({
             "id": "field_auto_1",
             "type": "SIGNATURE",
@@ -98,7 +124,7 @@ def inspect_pdf(pdf_path):
             "height": 70.0
         })
 
-    print(f"[PDF SERVICE] Inspected '{pdf_path}' ({num_pages} page(s), {len(detected_fields)} field(s))")
+    print(f"[PDF SERVICE] Inspected '{pdf_path}' ({num_pages} page(s), {len(detected_fields)} field(s) mapped)")
     return {"pages": num_pages, "fields": detected_fields}
 
 

@@ -61,16 +61,7 @@ export default function App() {
         // Fallback below
       }
     }
-    return [
-      {
-        id: "doc_sample_1",
-        name: "sample.pdf",
-        date: "7/26/2026, 11:24:56 PM",
-        pages: 1,
-        fields: 1,
-        status: "PENDING"
-      }
-    ];
+    return [];
   });
   const [selectedDoc, setSelectedDoc] = useState(null);
 

@@ -34,7 +34,22 @@ app.config["SECRET_KEY"] = config.SECRET_KEY
 app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32 MB max file size
 
 # Enable CORS for all frontend origins and preflight OPTIONS requests
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+@app.after_request
+def after_request(response):
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+    response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+    return response
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    print(f"[API ERROR] Unhandled Exception: {e}")
+    response = jsonify({"error": str(e), "message": "An internal server error occurred"})
+    response.status_code = 500
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
 
 # Register Controller Blueprints
 app.register_blueprint(auth_bp)

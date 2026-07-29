@@ -39,20 +39,9 @@ def _write_docs(docs):
 
 def get_user_documents(user_email):
     docs = _read_docs()
+    if not user_email or user_email == "all":
+        return docs
     user_docs = [d for d in docs if d.get("user_email") == user_email or not d.get("user_email")]
-    if not user_docs:
-        initial_doc = {
-            "id": "doc_sample_1",
-            "name": "sample.pdf",
-            "date": "7/26/2026, 11:24:56 PM",
-            "pages": 1,
-            "fields": 1,
-            "status": "PENDING",
-            "user_email": user_email
-        }
-        docs.append(initial_doc)
-        _write_docs(docs)
-        user_docs = [initial_doc]
     return user_docs
 
 
@@ -103,21 +92,8 @@ def upload_signature():
 @doc_bp.route("/api/documents/upload", methods=["POST"])
 def upload_document():
     if "file" not in request.files:
-        doc_id = f"doc_{int(time.time())}"
-        new_doc = {
-            "id": doc_id,
-            "name": "sample.pdf",
-            "date": time.strftime("%m/%d/%Y, %I:%M:%S %p"),
-            "pages": 1,
-            "fields": 1,
-            "status": "PENDING",
-            "fields_detail": [
-                {"id": "field_1", "type": "SIGNATURE", "confidence": "94%", "page": 1, "x": 380, "y": 420, "width": 200, "height": 80}
-            ]
-        }
-        save_document(new_doc)
-        print(f"[API] POST /api/documents/upload -> Sample doc generated: {doc_id}")
-        return jsonify({"status": "success", "document": new_doc}), 200
+        print("[API] POST /api/documents/upload (Error: No file uploaded)")
+        return jsonify({"error": "No file uploaded"}), 400
 
     file = request.files["file"]
     if not file or not file.filename:

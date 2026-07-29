@@ -66,7 +66,4 @@ def read_pdf(pdf_path: str):
 
 
 def extract_pdf_elements(pdf_path: str):
-    result = read_pdf(pdf_path)
-    if result.get("is_scanned"):
-        return {"is_scanned": True, "items": []}
-    return result.get("items", [])
+    return read_pdf(pdf_path)
